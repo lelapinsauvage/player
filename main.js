@@ -47,71 +47,82 @@ const nextBtn = document.getElementById('next');
 // ============================================
 let scene, camera, renderer;
 let turntable, tonearm, vinyl;
+let time = 0;
+
+const vinylPosition = { x: -18, y: 33.5, z: 46 };
 
 function initThree() {
-  // Scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0a0a);
 
-  // Camera - zoomed out, centered
   const aspect = canvas.parentElement.clientWidth / canvas.parentElement.clientHeight;
   camera = new THREE.PerspectiveCamera(35, aspect, 0.1, 1000);
   camera.position.set(0, 180, 400);
   camera.lookAt(0, 20, 0);
 
-  // Renderer
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
 
-  // Environment map for reflections
+  // Environment map
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x222222);
-  const envTexture = pmremGenerator.fromScene(envScene).texture;
-  scene.environment = envTexture;
+  const envGeo = new THREE.SphereGeometry(50, 32, 32);
+  const envMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    vertexShader: `
+      varying vec3 vWorldPosition;
+      void main() {
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPos.xyz;
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vWorldPosition;
+      void main() {
+        vec3 dir = normalize(vWorldPosition);
+        float y = dir.y * 0.5 + 0.5;
+        vec3 color = mix(vec3(0.02), vec3(0.12), y);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
+  });
+  envScene.add(new THREE.Mesh(envGeo, envMat));
+  scene.environment = pmremGenerator.fromScene(envScene).texture;
 
-  // Lighting
   setupLighting();
-
-  // Load models
   loadTurntable();
   createVinyl();
 
-  // Start animation
-  animate();
-
-  // Handle resize
   window.addEventListener('resize', onResize);
+  animate();
 }
 
 function setupLighting() {
-  // Ambient
-  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambient);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
 
-  // Key light - warm
-  const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.0);
-  keyLight.position.set(100, 200, 150);
-  keyLight.castShadow = true;
+  const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.2);
+  keyLight.position.set(80, 250, 200);
   scene.add(keyLight);
 
-  // Fill light - cool
-  const fillLight = new THREE.DirectionalLight(0xe6f0ff, 0.3);
-  fillLight.position.set(-100, 100, 100);
+  const fillLight = new THREE.DirectionalLight(0xe0e8ff, 0.3);
+  fillLight.position.set(-150, 80, 100);
   scene.add(fillLight);
 
-  // Rim light
-  const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  rimLight.position.set(0, 100, -150);
-  scene.add(rimLight);
+  const spotLight = new THREE.SpotLight(0xffffff, 2.0, 400, Math.PI / 5, 0.5, 1);
+  spotLight.position.set(60, 200, 150);
+  spotLight.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  scene.add(spotLight);
+  scene.add(spotLight.target);
 
-  // Accent light - brass tint
-  const accentLight = new THREE.PointLight(0xc4a35a, 0.4, 300);
-  accentLight.position.set(50, 50, 100);
-  scene.add(accentLight);
+  const spotLight2 = new THREE.SpotLight(0xffe8d0, 1.0, 350, Math.PI / 6, 0.6, 1);
+  spotLight2.position.set(-80, 180, 120);
+  spotLight2.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  scene.add(spotLight2);
+  scene.add(spotLight2.target);
 }
 
 function loadTurntable() {
@@ -119,19 +130,15 @@ function loadTurntable() {
   loader.load('Untitled.gltf', (gltf) => {
     turntable = gltf.scene;
 
-    // Center and scale
     const box = new THREE.Box3().setFromObject(turntable);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
     turntable.position.sub(center);
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 150 / maxDim;
+    const scale = 150 / Math.max(size.x, size.y, size.z);
     turntable.scale.setScalar(scale);
-
     turntable.position.set(0, 0, 0);
 
-    // Find tonearm
     turntable.traverse((child) => {
       const name = child.name.toLowerCase();
       if (name.includes('arm') || name.includes('tone') || name.includes('needle')) {
@@ -147,43 +154,86 @@ function loadTurntable() {
   });
 }
 
-// Vinyl position (tuned)
-const vinylPosition = { x: -18, y: 33.5, z: 46 };
+function createVinylNormalMap() {
+  const size = 1024;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2 - 4;
+
+  // Base neutral normal
+  ctx.fillStyle = 'rgb(128, 128, 255)';
+  ctx.fillRect(0, 0, size, size);
+
+  // Groove normals - creates depth illusion that catches light
+  for (let r = radius - 20; r > 140; r -= 2.0) {
+    // Inner edge of groove (shadow side)
+    ctx.strokeStyle = 'rgb(90, 128, 255)';
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Outer edge of groove (highlight side)
+    ctx.strokeStyle = 'rgb(166, 128, 255)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Label area - flat
+  ctx.fillStyle = 'rgb(128, 128, 255)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Label raised edge
+  ctx.strokeStyle = 'rgb(165, 128, 255)';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 16;
+  return texture;
+}
 
 function createVinyl() {
   const track = tracks[currentTrack];
-
-  // Vinyl geometry
   const radius = 48;
-  const thickness = 1.5;
-  const geometry = new THREE.CylinderGeometry(radius, radius, thickness, 64);
+  const geometry = new THREE.CylinderGeometry(radius, radius, 1.5, 64);
 
-  // Create vinyl texture
   const texture = createVinylTexture(track);
+  const normalMap = createVinylNormalMap();
 
-  // Material - realistic black vinyl
   const material = new THREE.MeshPhysicalMaterial({
     map: texture,
-    color: 0x1a1a1a,
-    roughness: 0.15,
-    metalness: 0.0,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.1,
-    reflectivity: 0.5,
-    envMapIntensity: 0.8,
-    sheen: 0.3,
-    sheenRoughness: 0.3,
-    sheenColor: new THREE.Color(0x222233)
+    normalMap: normalMap,
+    normalScale: new THREE.Vector2(0.4, 0.4),
+    color: 0xffffff,
+    roughness: 0.02,
+    metalness: 1.0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    reflectivity: 1.0,
+    envMapIntensity: 3.0,
+    sheen: 0.1,
+    sheenRoughness: 0.05,
+    sheenColor: new THREE.Color(0xffffff)
   });
 
   vinyl = new THREE.Mesh(geometry, material);
   vinyl.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
-
   scene.add(vinyl);
 }
 
 function createVinylTexture(track) {
-  const size = 2048; // Higher res for detail
+  const size = 2048;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -192,93 +242,90 @@ function createVinylTexture(track) {
   const cy = size / 2;
   const radius = size / 2 - 8;
 
-  // Base - deep black vinyl
-  ctx.fillStyle = '#0a0a0a';
+  // Base - bright polished silver/chrome
+  const baseGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  baseGradient.addColorStop(0, '#f5f5f7');
+  baseGradient.addColorStop(0.3, '#e8e8ea');
+  baseGradient.addColorStop(0.6, '#dcdcde');
+  baseGradient.addColorStop(1, '#c8c8ca');
+  ctx.fillStyle = baseGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Outer rim - slight bevel
-  const rimGradient = ctx.createRadialGradient(cx, cy, radius - 15, cx, cy, radius);
+  // Rim - polished chrome edge
+  const rimGradient = ctx.createRadialGradient(cx, cy, radius - 20, cx, cy, radius);
   rimGradient.addColorStop(0, 'transparent');
-  rimGradient.addColorStop(0.5, 'rgba(40, 40, 42, 0.8)');
-  rimGradient.addColorStop(1, 'rgba(25, 25, 27, 1)');
+  rimGradient.addColorStop(0.4, 'rgba(245, 245, 250, 0.7)');
+  rimGradient.addColorStop(0.7, 'rgba(210, 210, 215, 0.9)');
+  rimGradient.addColorStop(1, 'rgba(170, 170, 175, 1)');
   ctx.fillStyle = rimGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Lead-in area (outer smooth area)
-  ctx.strokeStyle = 'rgba(30, 30, 32, 0.6)';
-  for (let r = radius - 8; r > radius - 40; r -= 3) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  // Main grooves - dense, realistic
+  // Vinyl grooves - visible shiny circles
   const labelRadius = 280;
-  const grooveStart = radius - 45;
-  const grooveEnd = labelRadius + 30;
 
-  for (let r = grooveStart; r > grooveEnd; r -= 0.8) {
-    // Vary the groove appearance for realism
-    const noiseVal = Math.sin(r * 0.7) * Math.cos(r * 0.3);
-    const baseGrey = 18 + noiseVal * 4;
-    const alpha = 0.4 + Math.abs(noiseVal) * 0.2;
-
-    ctx.strokeStyle = `rgba(${baseGrey}, ${baseGrey}, ${baseGrey + 2}, ${alpha})`;
-    ctx.lineWidth = 0.3 + Math.random() * 0.2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Lead-out area (near label)
-  for (let r = labelRadius + 25; r > labelRadius + 5; r -= 2.5) {
-    ctx.strokeStyle = 'rgba(25, 25, 27, 0.5)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  // Dark groove lines
+  for (let r = radius - 40; r > labelRadius + 25; r -= 2.0) {
+    ctx.strokeStyle = 'rgba(80, 80, 85, 0.4)';
     ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  // Light reflection bands (the rainbow effect on real vinyl)
+  // Shiny highlight between grooves
+  for (let r = radius - 41; r > labelRadius + 26; r -= 2.0) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Extra fine detail grooves
+  for (let r = radius - 40; r > labelRadius + 25; r -= 4.0) {
+    ctx.strokeStyle = 'rgba(60, 60, 65, 0.25)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Bright metallic shine - diagonal reflection
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-
-  // Primary reflection arc
-  const reflectGradient = ctx.createConicGradient(Math.PI * 0.25, cx, cy);
-  reflectGradient.addColorStop(0, 'rgba(60, 60, 70, 0)');
-  reflectGradient.addColorStop(0.1, 'rgba(80, 70, 90, 0.08)');
-  reflectGradient.addColorStop(0.15, 'rgba(70, 80, 100, 0.12)');
-  reflectGradient.addColorStop(0.2, 'rgba(60, 90, 80, 0.08)');
-  reflectGradient.addColorStop(0.25, 'rgba(90, 80, 70, 0.1)');
-  reflectGradient.addColorStop(0.3, 'rgba(60, 60, 70, 0)');
-  reflectGradient.addColorStop(0.5, 'rgba(60, 60, 70, 0)');
-  reflectGradient.addColorStop(0.6, 'rgba(70, 75, 90, 0.06)');
-  reflectGradient.addColorStop(0.65, 'rgba(90, 70, 80, 0.08)');
-  reflectGradient.addColorStop(0.7, 'rgba(60, 60, 70, 0)');
-  reflectGradient.addColorStop(1, 'rgba(60, 60, 70, 0)');
-
-  ctx.fillStyle = reflectGradient;
+  const shineGradient = ctx.createLinearGradient(0, 0, size, size);
+  shineGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  shineGradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.3)');
+  shineGradient.addColorStop(0.45, 'rgba(255, 255, 255, 0.5)');
+  shineGradient.addColorStop(0.55, 'rgba(255, 255, 255, 0.4)');
+  shineGradient.addColorStop(0.75, 'rgba(255, 255, 255, 0.15)');
+  shineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = shineGradient;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius - 20, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
   ctx.arc(cx, cy, labelRadius + 5, 0, Math.PI * 2, true);
   ctx.fill();
   ctx.restore();
 
-  // Specular highlight
+  // Rainbow iridescence - more visible
   ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  const specGradient = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
-  specGradient.addColorStop(0, 'rgba(255, 255, 255, 0.06)');
-  specGradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.02)');
-  specGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
-  ctx.fillStyle = specGradient;
+  ctx.globalCompositeOperation = 'overlay';
+  const iridescentGradient = ctx.createConicGradient(Math.PI * 0.3, cx, cy);
+  iridescentGradient.addColorStop(0, 'rgba(255, 180, 180, 0.15)');
+  iridescentGradient.addColorStop(0.17, 'rgba(255, 255, 180, 0.12)');
+  iridescentGradient.addColorStop(0.33, 'rgba(180, 255, 180, 0.15)');
+  iridescentGradient.addColorStop(0.5, 'rgba(180, 255, 255, 0.12)');
+  iridescentGradient.addColorStop(0.67, 'rgba(180, 180, 255, 0.15)');
+  iridescentGradient.addColorStop(0.83, 'rgba(255, 180, 255, 0.12)');
+  iridescentGradient.addColorStop(1, 'rgba(255, 180, 180, 0.15)');
+  ctx.fillStyle = iridescentGradient;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius - 15, 0, Math.PI * 2);
+  ctx.arc(cx, cy, labelRadius + 10, 0, Math.PI * 2, true);
   ctx.fill();
   ctx.restore();
 
@@ -292,26 +339,6 @@ function createVinylTexture(track) {
   ctx.beginPath();
   ctx.arc(cx, cy, labelRadius, 0, Math.PI * 2);
   ctx.fill();
-
-  // Label paper texture
-  ctx.save();
-  ctx.globalCompositeOperation = 'multiply';
-  for (let i = 0; i < 3000; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = Math.random() * labelRadius;
-    const x = cx + Math.cos(angle) * dist;
-    const y = cy + Math.sin(angle) * dist;
-    ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.03})`;
-    ctx.fillRect(x, y, 1, 1);
-  }
-  ctx.restore();
-
-  // Label edge shadow
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(cx, cy, labelRadius, 0, Math.PI * 2);
-  ctx.stroke();
 
   // Label text
   ctx.save();
@@ -331,29 +358,28 @@ function createVinylTexture(track) {
   ctx.font = '400 36px "Playfair Display"';
   ctx.fillText(track.artist, 0, 40);
 
-  // Small details
   ctx.font = '400 24px "JetBrains Mono"';
   ctx.fillStyle = 'rgba(40, 30, 20, 0.5)';
   ctx.fillText('33⅓ RPM', 0, 90);
 
   ctx.restore();
 
-  // Center hole with spindle adapter look
+  // Center hole - dark for contrast
   const holeGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
-  holeGradient.addColorStop(0, '#050505');
-  holeGradient.addColorStop(0.6, '#0a0a0a');
-  holeGradient.addColorStop(0.85, '#1a1a1a');
-  holeGradient.addColorStop(1, '#252525');
+  holeGradient.addColorStop(0, '#1a1a1a');
+  holeGradient.addColorStop(0.5, '#252525');
+  holeGradient.addColorStop(0.8, '#3a3a3a');
+  holeGradient.addColorStop(1, '#505050');
   ctx.fillStyle = holeGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, 28, 0, Math.PI * 2);
   ctx.fill();
 
   // Hole inner rim highlight
-  ctx.strokeStyle = 'rgba(60, 60, 60, 0.5)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(150, 150, 155, 0.4)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(cx, cy, 26, Math.PI * 0.75, Math.PI * 1.75);
+  ctx.arc(cx, cy, 26, Math.PI * 0.7, Math.PI * 1.7);
   ctx.stroke();
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -374,28 +400,31 @@ function onResize() {
 // ============================================
 function animate() {
   requestAnimationFrame(animate);
+  time += 0.016;
 
-  // Spin vinyl when playing (around Y axis since it's rotated)
   if (vinyl && isPlaying) {
-    vinyl.rotation.y += 0.02;
+    vinyl.rotation.y += 0.025;
+
+    if (vinyl.material.sheenColor) {
+      const pulse = Math.sin(time * 2) * 0.1;
+      vinyl.material.sheen = 0.5 + pulse;
+    }
   }
 
   renderer.render(scene, camera);
 }
 
 // ============================================
-// AUDIO CONTEXT & ANALYSER
+// AUDIO
 // ============================================
 let audioContext, analyser, dataArray;
 
 function setupAudio() {
   if (audioContext) return;
-
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
-
   const source = audioContext.createMediaElementSource(audio);
   source.connect(analyser);
   analyser.connect(audioContext.destination);
@@ -403,65 +432,40 @@ function setupAudio() {
 
 function updateVisualizer() {
   if (!analyser || !isPlaying) return;
-
   analyser.getByteFrequencyData(dataArray);
-
   const step = Math.floor(dataArray.length / bars.length);
   bars.forEach((bar, i) => {
     const value = dataArray[i * step];
-    const height = Math.max(4, (value / 255) * 40);
-    bar.style.height = `${height}px`;
+    bar.style.height = `${Math.max(4, (value / 255) * 40)}px`;
   });
-
   requestAnimationFrame(updateVisualizer);
 }
 
 // ============================================
-// TONEARM ANIMATION
+// TONEARM
 // ============================================
-const tonearmPlaying = {
-  rotY: -0.7,
-  posX: -164,
-  posZ: -65
-};
+const tonearmPlaying = { rotY: -0.7, posX: -164, posZ: -65 };
 
 function animateTonearm(playing) {
   if (!tonearm) return;
-
   const duration = 800;
   const start = performance.now();
   const startRot = tonearm.rotation.y;
   const startPosX = tonearm.position.x;
   const startPosZ = tonearm.position.z;
 
-  const targetRot = playing
-    ? tonearm.userData.startRotation.y + tonearmPlaying.rotY
-    : tonearm.userData.startRotation.y;
-  const targetPosX = playing
-    ? tonearm.userData.startPosition.x + tonearmPlaying.posX
-    : tonearm.userData.startPosition.x;
-  const targetPosZ = playing
-    ? tonearm.userData.startPosition.z + tonearmPlaying.posZ
-    : tonearm.userData.startPosition.z;
-
-  function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
+  const targetRot = playing ? tonearm.userData.startRotation.y + tonearmPlaying.rotY : tonearm.userData.startRotation.y;
+  const targetPosX = playing ? tonearm.userData.startPosition.x + tonearmPlaying.posX : tonearm.userData.startPosition.x;
+  const targetPosZ = playing ? tonearm.userData.startPosition.z + tonearmPlaying.posZ : tonearm.userData.startPosition.z;
 
   function tick() {
-    const elapsed = performance.now() - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = easeOutCubic(progress);
-
+    const progress = Math.min((performance.now() - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
     tonearm.rotation.y = startRot + (targetRot - startRot) * eased;
     tonearm.position.x = startPosX + (targetPosX - startPosX) * eased;
     tonearm.position.z = startPosZ + (targetPosZ - startPosZ) * eased;
-
-    if (progress < 1) {
-      requestAnimationFrame(tick);
-    }
+    if (progress < 1) requestAnimationFrame(tick);
   }
-
   tick();
 }
 
@@ -470,7 +474,6 @@ function animateTonearm(playing) {
 // ============================================
 function togglePlay() {
   setupAudio();
-
   if (isPlaying) {
     audio.pause();
     document.body.classList.remove('playing');
@@ -481,13 +484,11 @@ function togglePlay() {
     animateTonearm(true);
     updateVisualizer();
   }
-
   isPlaying = !isPlaying;
 }
 
 function loadTrack(index) {
   const track = tracks[index];
-
   audio.src = track.src;
   trackNumber.textContent = track.number;
   trackTitle.innerHTML = track.title;
@@ -496,7 +497,6 @@ function loadTrack(index) {
   album.textContent = track.album;
   year.textContent = track.year;
 
-  // Update vinyl texture
   if (vinyl) {
     vinyl.material.map = createVinylTexture(track);
     vinyl.material.needsUpdate = true;
@@ -504,31 +504,19 @@ function loadTrack(index) {
 }
 
 function nextTrack() {
-  if (isPlaying) {
-    audio.pause();
-    document.body.classList.remove('playing');
-    animateTonearm(false);
-    isPlaying = false;
-  }
-
+  if (isPlaying) togglePlay();
   currentTrack = (currentTrack + 1) % tracks.length;
   loadTrack(currentTrack);
 }
 
 function prevTrack() {
-  if (isPlaying) {
-    audio.pause();
-    document.body.classList.remove('playing');
-    animateTonearm(false);
-    isPlaying = false;
-  }
-
+  if (isPlaying) togglePlay();
   currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
   loadTrack(currentTrack);
 }
 
 // ============================================
-// PROGRESS BAR
+// PROGRESS
 // ============================================
 audio.addEventListener('timeupdate', () => {
   const pct = (audio.currentTime / audio.duration) * 100;
@@ -549,30 +537,23 @@ audio.addEventListener('ended', () => {
 
 progressBar.addEventListener('click', (e) => {
   const rect = progressBar.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  audio.currentTime = pct * audio.duration;
+  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
 });
 
 function formatTime(s) {
   if (isNaN(s)) return '0:00';
-  const mins = Math.floor(s / 60);
-  const secs = Math.floor(s % 60).toString().padStart(2, '0');
-  return `${mins}:${secs}`;
+  return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 }
 
 // ============================================
-// EVENT LISTENERS
+// EVENTS
 // ============================================
 canvas.addEventListener('click', togglePlay);
-
 prevBtn.addEventListener('click', prevTrack);
 nextBtn.addEventListener('click', nextTrack);
 
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    togglePlay();
-  }
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   if (e.code === 'ArrowRight') nextTrack();
   if (e.code === 'ArrowLeft') prevTrack();
 });
