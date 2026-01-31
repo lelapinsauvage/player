@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vinyl</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Grain overlay -->
+  <div class="grain"></div>
+
+  <!-- Main container -->
+  <div class="container">
+    <!-- Left panel - Typography -->
+    <div class="left-panel">
+      <header class="issue">
+        <span>Volume 01</span>
+        <span class="separator">—</span>
+        <span>Side A</span>
+      </header>
+
+      <div class="track-info">
+        <span class="track-number" id="track-number">01</span>
+        <h1 class="track-title" id="track-title">Money <em>Trees</em></h1>
+        <p class="track-artist" id="track-artist">Kendrick Lamar</p>
+
+        <div class="liner-notes">
+          <div class="credit">
+            <span class="label">Produced by</span>
+            <span class="value" id="producer">DJ Dahi</span>
+          </div>
+          <div class="credit">
+            <span class="label">Album</span>
+            <span class="value" id="album">good kid, m.A.A.d city</span>
+          </div>
+          <div class="credit">
+            <span class="label">Released</span>
+            <span class="value" id="year">2012</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visualizer -->
+      <div class="visualizer" id="visualizer">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-section">
+        <div class="time-display">
+          <span class="time" id="time-current">0:00</span>
+          <span class="time" id="time-total">0:00</span>
+        </div>
+        <div class="progress-bar" id="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+          <div class="scrubber" id="scrubber"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel - 3D Vinyl -->
+    <div class="right-panel">
+      <canvas id="vinyl-canvas"></canvas>
+
+      <!-- Navigation -->
+      <div class="nav">
+        <button class="nav-btn" id="prev" aria-label="Previous track">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <button class="nav-btn" id="next" aria-label="Next track">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio" crossorigin="anonymous"></audio>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
