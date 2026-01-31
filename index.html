@@ -17,6 +17,18 @@
   <div class="container">
     <!-- Left panel - Typography -->
     <div class="left-panel">
+      <!-- Environmental album art background -->
+      <div class="album-atmosphere" id="album-atmosphere"></div>
+
+      <!-- Giant background track number -->
+      <div class="bg-track-number" id="bg-track-number">01</div>
+
+      <!-- Vertical rhythm line -->
+      <div class="rhythm-line"></div>
+
+      <!-- Strike line for sound reactivity -->
+      <div class="strike-line" id="strike-line"></div>
+
       <header class="issue">
         <span>Volume 01</span>
         <span class="separator">—</span>
@@ -24,13 +36,21 @@
       </header>
 
       <div class="track-info">
-        <span class="track-number" id="track-number">01</span>
-        <h1 class="track-title" id="track-title">Money <em>Trees</em></h1>
+        <div class="chapter-label">
+          <span class="chapter-marker">Chapter</span>
+          <span class="track-number" id="track-number">01</span>
+        </div>
+
+        <h1 class="track-title" id="track-title">
+          <span class="title-word">Money</span>
+          <span class="title-word title-emphasis"><em>Trees</em></span>
+        </h1>
+
         <p class="track-artist" id="track-artist">Kendrick Lamar</p>
 
         <div class="liner-notes">
           <div class="credit">
-            <span class="label">Produced by</span>
+            <span class="label">Produced</span>
             <span class="value" id="producer">DJ Dahi</span>
           </div>
           <div class="credit">
@@ -38,10 +58,15 @@
             <span class="value" id="album">good kid, m.A.A.d city</span>
           </div>
           <div class="credit">
-            <span class="label">Released</span>
+            <span class="label">Year</span>
             <span class="value" id="year">2012</span>
           </div>
         </div>
+
+        <!-- Pull quote / lyric fragment -->
+        <blockquote class="pull-quote" id="pull-quote">
+          <span class="quote-text">"it go Halle Berry or hallelujah"</span>
+        </blockquote>
       </div>
 
       <!-- Visualizer -->
@@ -51,6 +76,21 @@
         <div class="bar"></div>
         <div class="bar"></div>
         <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <!-- Contextual story blocks that fade in over time -->
+      <div class="story-blocks" id="story-blocks">
+        <div class="story-block" data-delay="30">
+          <span class="story-label">Recorded at</span>
+          <span class="story-value" id="story-location">TDE Studios, Carson, CA</span>
+        </div>
+        <div class="story-block" data-delay="60">
+          <span class="story-label">Samples</span>
+          <span class="story-value" id="story-sample">"Silver Soul" by Beach House</span>
+        </div>
       </div>
 
       <!-- Progress -->
@@ -68,6 +108,8 @@
 
     <!-- Right panel - 3D Vinyl -->
     <div class="right-panel">
+      <!-- Large background visualizer -->
+      <canvas id="viz-canvas"></canvas>
       <canvas id="vinyl-canvas"></canvas>
 
       <!-- Navigation -->

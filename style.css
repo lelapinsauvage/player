@@ -9,9 +9,18 @@
   --cream: #f5f0e8;
   --cream-muted: rgba(245, 240, 232, 0.6);
   --cream-faint: rgba(245, 240, 232, 0.15);
+  --cream-ghost: rgba(245, 240, 232, 0.06);
   --brass: #c4a35a;
   --brass-muted: rgba(196, 163, 90, 0.7);
+  --brass-glow: rgba(196, 163, 90, 0.3);
   --vinyl-black: #1a1a1a;
+
+  /* Sound-reactive custom properties */
+  --bass-scale: 1;
+  --bass-glow: 0;
+  --high-jump: 0;
+  --strike-opacity: 0;
+  --breathe: 1;
 }
 
 body {
@@ -59,6 +68,7 @@ body {
 
 /* Left Panel */
 .left-panel {
+  position: relative;
   padding: 60px 80px;
   display: flex;
   flex-direction: column;
@@ -67,6 +77,101 @@ body {
   opacity: 0;
   animation: fadeUp 0.8s ease forwards;
   animation-delay: 0.2s;
+  overflow: hidden;
+  /* Sound-reactive breathing */
+  transform: scale(var(--breathe));
+  transition: transform 0.15s ease-out;
+}
+
+/* Album atmosphere - environmental background */
+.album-atmosphere {
+  position: absolute;
+  top: -20%;
+  left: -30%;
+  width: 150%;
+  height: 140%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  filter: blur(60px) saturate(0.3) brightness(0.4);
+  transition: opacity 1.5s ease, background-image 1.5s ease;
+  pointer-events: none;
+  z-index: 0;
+  /* Subtle ken burns drift */
+  animation: kenBurns 30s ease-in-out infinite alternate;
+}
+
+body.playing .album-atmosphere {
+  opacity: 0.12;
+}
+
+@keyframes kenBurns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.05) translate(2%, 1%); }
+}
+
+/* Giant background track number */
+.bg-track-number {
+  position: absolute;
+  top: 50%;
+  left: -5%;
+  transform: translateY(-50%);
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(15rem, 30vw, 25rem);
+  font-weight: 400;
+  color: var(--cream);
+  opacity: 0.04;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+  /* Sound-reactive glow */
+  text-shadow: 0 0 calc(var(--bass-glow) * 100px) var(--brass-glow);
+  transition: text-shadow 0.2s ease-out;
+}
+
+/* Vertical rhythm line */
+.rhythm-line {
+  position: absolute;
+  left: 40px;
+  top: 180px;
+  bottom: 120px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--cream-faint) 15%,
+    var(--cream-faint) 85%,
+    transparent 100%
+  );
+  opacity: 0;
+  animation: fadeUp 1s ease forwards;
+  animation-delay: 1s;
+}
+
+/* Strike line - sound reactive */
+.strike-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--brass) 20%,
+    var(--brass) 80%,
+    transparent 100%
+  );
+  opacity: var(--strike-opacity);
+  transform: scaleX(0);
+  transition: transform 0.1s ease-out, opacity 0.3s ease-out;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.strike-line.active {
+  transform: scaleX(1);
 }
 
 @keyframes fadeUp {
@@ -82,6 +187,8 @@ body {
 
 /* Issue header */
 .issue {
+  position: relative;
+  z-index: 1;
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -97,34 +204,67 @@ body {
 
 /* Track info */
 .track-info {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 40px 0;
+  padding-left: 20px;
 }
 
-.track-number {
-  font-size: 12px;
-  letter-spacing: 0.3em;
-  color: var(--brass);
-  margin-bottom: 16px;
+/* Chapter label */
+.chapter-label {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
   animation-delay: 0.4s;
 }
 
+.chapter-marker {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+}
+
+.track-number {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--brass);
+  font-weight: 500;
+}
+
+/* Track title - dramatic */
 .track-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: clamp(3.5rem, 10vw, 7rem);
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.0;
   letter-spacing: -0.02em;
   color: var(--cream);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
   animation-delay: 0.5s;
+  /* Sound-reactive glow on sustained tones */
+  text-shadow: 0 0 calc(var(--bass-glow) * 40px) var(--brass-glow);
+  transition: text-shadow 0.3s ease-out;
+}
+
+.title-word {
+  display: block;
+  /* Sound-reactive jump on high transients */
+  transform: translateY(calc(var(--high-jump) * -3px));
+  transition: transform 0.08s ease-out;
+}
+
+.title-word.title-emphasis {
+  margin-top: 0.05em;
 }
 
 .track-title em {
@@ -137,17 +277,21 @@ body {
   font-size: 1.25rem;
   font-weight: 400;
   color: var(--cream-muted);
-  margin-bottom: 48px;
+  margin-bottom: 40px;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
   animation-delay: 0.6s;
 }
 
-/* Liner notes */
+/* Liner notes - tighter, editorial */
 .liner-notes {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
+  padding-left: 2px;
+  border-left: 1px solid var(--cream-ghost);
+  margin-left: -2px;
+  padding-left: 16px;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
   animation-delay: 0.7s;
@@ -156,31 +300,56 @@ body {
 .credit {
   display: flex;
   align-items: baseline;
-  gap: 16px;
+  gap: 12px;
+  line-height: 1.6;
 }
 
 .credit .label {
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  font-size: 9px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--cream-faint);
-  min-width: 80px;
+  color: var(--cream-ghost);
+  min-width: 60px;
 }
 
 .credit .value {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--cream-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Pull quote */
+.pull-quote {
+  margin-top: 48px;
+  padding-left: 16px;
+  border-left: 2px solid var(--brass-muted);
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+  animation-delay: 0.9s;
+}
+
+.quote-text {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--cream-faint);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
 }
 
 /* Visualizer */
 .visualizer {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
-  gap: 4px;
-  height: 40px;
-  margin-bottom: 40px;
+  justify-content: flex-start;
+  gap: 3px;
+  height: 32px;
+  margin-bottom: 24px;
+  padding-left: 2px;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 
 body.playing .visualizer {
@@ -188,15 +357,60 @@ body.playing .visualizer {
 }
 
 .visualizer .bar {
-  width: 3px;
-  height: 4px;
+  width: 2px;
+  height: 3px;
   background: var(--brass);
   border-radius: 1px;
-  transition: height 0.1s ease;
+  transition: height 0.05s ease-out;
+  opacity: 0.8;
+}
+
+.visualizer .bar:nth-child(odd) {
+  opacity: 0.6;
+}
+
+/* Story blocks - contextual info that fades in */
+.story-blocks {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.story-block {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.story-block.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.story-label {
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cream-ghost);
+  min-width: 70px;
+}
+
+.story-value {
+  font-size: 11px;
+  color: var(--cream-faint);
+  font-style: italic;
 }
 
 /* Progress section */
 .progress-section {
+  position: relative;
+  z-index: 1;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
   animation-delay: 0.8s;
@@ -265,9 +479,30 @@ body.playing .visualizer {
   opacity: 0;
   animation: fadeUp 0.8s ease forwards;
   animation-delay: 0.3s;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Large background visualizer */
+#viz-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+body.playing #viz-canvas {
+  opacity: 0.6;
 }
 
 #vinyl-canvas {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   cursor: pointer;
@@ -323,7 +558,16 @@ body.playing .visualizer {
   }
 
   .track-title {
-    font-size: clamp(2.5rem, 10vw, 4rem);
+    font-size: clamp(2.5rem, 12vw, 4rem);
+  }
+
+  .bg-track-number {
+    font-size: clamp(10rem, 40vw, 15rem);
+    left: -10%;
+  }
+
+  .rhythm-line {
+    display: none;
   }
 
   .nav {

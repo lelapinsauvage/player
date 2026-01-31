@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const tracks = [
   {
     title: 'Money <em>Trees</em>',
+    titleWords: ['Money', 'Trees'],
     artist: 'Kendrick Lamar',
     album: 'good kid, m.A.A.d city',
     producer: 'DJ Dahi',
@@ -14,7 +15,11 @@ const tracks = [
     catalog: 'KL-001',
     number: '01',
     src: 'money-trees.mp3',
-    labelColor: '#c4a35a'
+    labelColor: '#c4a35a',
+    quote: '"it go Halle Berry or hallelujah"',
+    location: 'TDE Studios, Carson, CA',
+    sample: '"Silver Soul" by Beach House',
+    cover: 'cover.jpg'
   }
 ];
 
@@ -27,40 +32,56 @@ let isPlaying = false;
 const audio = document.getElementById('audio');
 const canvas = document.getElementById('vinyl-canvas');
 const trackNumber = document.getElementById('track-number');
+const bgTrackNumber = document.getElementById('bg-track-number');
 const trackTitle = document.getElementById('track-title');
 const trackArtist = document.getElementById('track-artist');
 const producer = document.getElementById('producer');
 const album = document.getElementById('album');
 const year = document.getElementById('year');
+const pullQuote = document.getElementById('pull-quote');
+const storyLocation = document.getElementById('story-location');
+const storySample = document.getElementById('story-sample');
+const storyBlocks = document.querySelectorAll('.story-block');
+const albumAtmosphere = document.getElementById('album-atmosphere');
+const strikeLine = document.getElementById('strike-line');
 const timeCurrent = document.getElementById('time-current');
 const timeTotal = document.getElementById('time-total');
 const progressBar = document.getElementById('progress-bar');
 const progressFill = document.getElementById('progress-fill');
 const scrubber = document.getElementById('scrubber');
-const visualizer = document.getElementById('visualizer');
-const bars = visualizer.querySelectorAll('.bar');
 const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
+const visualizer = document.getElementById('visualizer');
+const bars = visualizer ? visualizer.querySelectorAll('.bar') : [];
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx = vizCanvas ? vizCanvas.getContext('2d') : null;
 
 // ============================================
 // THREE.JS SETUP
 // ============================================
 let scene, camera, renderer;
 let turntable, tonearm, vinyl;
+let compositionGroup;
 let time = 0;
+
+// Parallax mouse tracking
+const mouse = { x: 0, y: 0 };
+const targetRotation = { x: 0, y: 0 };
+const currentRotation = { x: 0, y: 0 };
 
 const vinylPosition = { x: -18, y: 33.5, z: 46 };
 
 function initThree() {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0a0a);
+  // No background - transparent to show visualizer behind
 
   const aspect = canvas.parentElement.clientWidth / canvas.parentElement.clientHeight;
   camera = new THREE.PerspectiveCamera(35, aspect, 0.1, 1000);
   camera.position.set(0, 180, 400);
   camera.lookAt(0, 20, 0);
 
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -93,36 +114,83 @@ function initThree() {
   envScene.add(new THREE.Mesh(envGeo, envMat));
   scene.environment = pmremGenerator.fromScene(envScene).texture;
 
+  // Create composition group for parallax
+  compositionGroup = new THREE.Group();
+  scene.add(compositionGroup);
+
   setupLighting();
   loadTurntable();
   createVinyl();
 
   window.addEventListener('resize', onResize);
+
+  // Mouse parallax tracking
+  canvas.parentElement.addEventListener('mousemove', (e) => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+  });
+
+  canvas.parentElement.addEventListener('mouseleave', () => {
+    mouse.x = 0;
+    mouse.y = 0;
+  });
+
   animate();
 }
 
 function setupLighting() {
-  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+  // Warm ambient for organic feel
+  scene.add(new THREE.AmbientLight(0xfff5e6, 0.15));
 
-  const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.2);
-  keyLight.position.set(80, 250, 200);
+  // Key light - warm, main illumination from upper right
+  const keyLight = new THREE.DirectionalLight(0xfff0e0, 1.0);
+  keyLight.position.set(100, 200, 180);
   scene.add(keyLight);
 
-  const fillLight = new THREE.DirectionalLight(0xe0e8ff, 0.3);
-  fillLight.position.set(-150, 80, 100);
+  // Fill light - cool blue tint for contrast
+  const fillLight = new THREE.DirectionalLight(0xd0e0ff, 0.25);
+  fillLight.position.set(-120, 100, 80);
   scene.add(fillLight);
 
-  const spotLight = new THREE.SpotLight(0xffffff, 2.0, 400, Math.PI / 5, 0.5, 1);
-  spotLight.position.set(60, 200, 150);
-  spotLight.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
-  scene.add(spotLight);
-  scene.add(spotLight.target);
+  // Rim light - back lighting for depth
+  const rimLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+  rimLight.position.set(-50, 150, -100);
+  scene.add(rimLight);
 
-  const spotLight2 = new THREE.SpotLight(0xffe8d0, 1.0, 350, Math.PI / 6, 0.6, 1);
-  spotLight2.position.set(-80, 180, 120);
-  spotLight2.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
-  scene.add(spotLight2);
-  scene.add(spotLight2.target);
+  // Main spotlight on vinyl
+  const vinylSpot = new THREE.SpotLight(0xfff8f0, 1.8, 500, Math.PI / 6, 0.7, 1.5);
+  vinylSpot.position.set(80, 220, 160);
+  vinylSpot.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  scene.add(vinylSpot);
+  scene.add(vinylSpot.target);
+
+  // Secondary accent spotlight
+  const accentSpot = new THREE.SpotLight(0xffe0c0, 0.8, 400, Math.PI / 7, 0.8, 1.8);
+  accentSpot.position.set(-100, 180, 140);
+  accentSpot.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  scene.add(accentSpot);
+  scene.add(accentSpot.target);
+
+  // Top-down light
+  const topLight = new THREE.DirectionalLight(0xffffff, 0.15);
+  topLight.position.set(0, 300, 0);
+  scene.add(topLight);
+
+  // Warm point light
+  const warmGlow = new THREE.PointLight(0xffcc88, 0.3, 300, 2);
+  warmGlow.position.set(50, 80, 100);
+  scene.add(warmGlow);
+
+  // Cool point light
+  const coolGlow = new THREE.PointLight(0x88aaff, 0.15, 250, 2);
+  coolGlow.position.set(-80, 60, 80);
+  scene.add(coolGlow);
+
+  // Bounce light
+  const bounceLight = new THREE.DirectionalLight(0xfff8f0, 0.1);
+  bounceLight.position.set(0, -50, 100);
+  scene.add(bounceLight);
 }
 
 function loadTurntable() {
@@ -150,34 +218,30 @@ function loadTurntable() {
       }
     });
 
-    scene.add(turntable);
+    compositionGroup.add(turntable);
   });
 }
 
 function createVinylNormalMap() {
   const size = 1024;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const cvs = document.createElement('canvas');
+  cvs.width = size;
+  cvs.height = size;
+  const ctx = cvs.getContext('2d');
   const cx = size / 2;
   const cy = size / 2;
   const radius = size / 2 - 4;
 
-  // Base neutral normal
   ctx.fillStyle = 'rgb(128, 128, 255)';
   ctx.fillRect(0, 0, size, size);
 
-  // Groove normals - creates depth illusion that catches light
   for (let r = radius - 20; r > 140; r -= 2.0) {
-    // Inner edge of groove (shadow side)
     ctx.strokeStyle = 'rgb(90, 128, 255)';
     ctx.lineWidth = 1.0;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Outer edge of groove (highlight side)
     ctx.strokeStyle = 'rgb(166, 128, 255)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
@@ -185,20 +249,18 @@ function createVinylNormalMap() {
     ctx.stroke();
   }
 
-  // Label area - flat
   ctx.fillStyle = 'rgb(128, 128, 255)';
   ctx.beginPath();
   ctx.arc(cx, cy, 140, 0, Math.PI * 2);
   ctx.fill();
 
-  // Label raised edge
   ctx.strokeStyle = 'rgb(165, 128, 255)';
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.arc(cx, cy, 140, 0, Math.PI * 2);
   ctx.stroke();
 
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture = new THREE.CanvasTexture(cvs);
   texture.anisotropy = 16;
   return texture;
 }
@@ -226,20 +288,20 @@ function createVinyl() {
 
   vinyl = new THREE.Mesh(geometry, material);
   vinyl.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
-  scene.add(vinyl);
+  compositionGroup.add(vinyl);
 }
 
 function createVinylTexture(track) {
   const size = 2048;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const cvs = document.createElement('canvas');
+  cvs.width = size;
+  cvs.height = size;
+  const ctx = cvs.getContext('2d');
   const cx = size / 2;
   const cy = size / 2;
   const radius = size / 2 - 8;
 
-  // Base - plastic grey vinyl
+  // Base
   const baseGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
   baseGradient.addColorStop(0, '#c5c5c8');
   baseGradient.addColorStop(0.4, '#b0b0b3');
@@ -250,17 +312,14 @@ function createVinylTexture(track) {
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Rim edge
   ctx.strokeStyle = '#707075';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Vinyl grooves - realistic vinyl look
   const labelRadius = 280;
 
-  // Dense fine grooves (the actual music data grooves)
   for (let r = radius - 25; r > labelRadius + 15; r -= 1.8) {
     ctx.strokeStyle = 'rgba(70, 70, 75, 0.6)';
     ctx.lineWidth = 0.8;
@@ -269,18 +328,15 @@ function createVinylTexture(track) {
     ctx.stroke();
   }
 
-  // Prominent track separation rings (like between songs)
   const trackRings = [radius - 60, radius - 150, radius - 240, radius - 330, radius - 420];
   trackRings.forEach(r => {
     if (r > labelRadius + 20) {
-      // Dark groove
       ctx.strokeStyle = '#454550';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Shiny inner edge
       ctx.strokeStyle = 'rgba(200, 200, 205, 0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -289,21 +345,18 @@ function createVinylTexture(track) {
     }
   });
 
-  // Lead-in groove (outer edge)
   ctx.strokeStyle = '#505055';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(cx, cy, radius - 15, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Lead-out groove (near label)
   ctx.strokeStyle = '#505055';
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(cx, cy, labelRadius + 12, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Highlight reflections on grooves
   for (let r = radius - 40; r > labelRadius + 30; r -= 8) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 0.5;
@@ -312,7 +365,6 @@ function createVinylTexture(track) {
     ctx.stroke();
   }
 
-  // Plastic shine - subtle diagonal reflection
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   const shineGradient = ctx.createLinearGradient(0, 0, size, size);
@@ -339,7 +391,6 @@ function createVinylTexture(track) {
   ctx.arc(cx, cy, labelRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Label text
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(-Math.PI / 2);
@@ -363,7 +414,7 @@ function createVinylTexture(track) {
 
   ctx.restore();
 
-  // Center hole - dark for contrast
+  // Center hole
   const holeGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
   holeGradient.addColorStop(0, '#1a1a1a');
   holeGradient.addColorStop(0.5, '#252525');
@@ -374,14 +425,13 @@ function createVinylTexture(track) {
   ctx.arc(cx, cy, 28, 0, Math.PI * 2);
   ctx.fill();
 
-  // Hole inner rim highlight
   ctx.strokeStyle = 'rgba(150, 150, 155, 0.4)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(cx, cy, 26, Math.PI * 0.7, Math.PI * 1.7);
   ctx.stroke();
 
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture = new THREE.CanvasTexture(cvs);
   texture.anisotropy = 16;
   return texture;
 }
@@ -401,6 +451,17 @@ function animate() {
   requestAnimationFrame(animate);
   time += 0.016;
 
+  // Parallax effect
+  targetRotation.x = mouse.y * 0.08;
+  targetRotation.y = mouse.x * 0.12;
+  currentRotation.x += (targetRotation.x - currentRotation.x) * 0.05;
+  currentRotation.y += (targetRotation.y - currentRotation.y) * 0.05;
+
+  if (compositionGroup) {
+    compositionGroup.rotation.x = currentRotation.x;
+    compositionGroup.rotation.z = -currentRotation.y * 0.3;
+  }
+
   if (vinyl && isPlaying) {
     vinyl.rotation.y += 0.025;
 
@@ -409,7 +470,6 @@ function animate() {
       vinyl.material.sheen = 0.5 + pulse;
     }
 
-    // Smoothly update tonearm position based on song progress (only after initial animation completes)
     if (audio.duration && tonearm && !tonearmAnimating) {
       const songProgress = audio.currentTime / audio.duration;
       updateTonearmPosition(songProgress);
@@ -420,30 +480,246 @@ function animate() {
 }
 
 // ============================================
-// AUDIO
+// AUDIO & SOUND-REACTIVE SYSTEM
 // ============================================
 let audioContext, analyser, dataArray;
+let bassAnalyser, bassDataArray;
+
+// Sound reactive state
+const soundState = {
+  bass: 0,
+  mid: 0,
+  high: 0,
+  bassSmooth: 0,
+  highSmooth: 0,
+  lastBassHit: 0,
+  lastHighHit: 0
+};
 
 function setupAudio() {
   if (audioContext) return;
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Main analyser for highs/mids
   analyser = audioContext.createAnalyser();
-  analyser.fftSize = 64;
+  analyser.fftSize = 256;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  // Bass analyser with larger FFT for low frequency precision
+  bassAnalyser = audioContext.createAnalyser();
+  bassAnalyser.fftSize = 512;
+  bassDataArray = new Uint8Array(bassAnalyser.frequencyBinCount);
+
   const source = audioContext.createMediaElementSource(audio);
   source.connect(analyser);
+  source.connect(bassAnalyser);
   analyser.connect(audioContext.destination);
 }
 
-function updateVisualizer() {
+function updateSoundReactive() {
   if (!analyser || !isPlaying) return;
+
   analyser.getByteFrequencyData(dataArray);
+  bassAnalyser.getByteFrequencyData(bassDataArray);
+
+  // Calculate frequency bands
+  // Bass: 0-150Hz (first ~6 bins at 44100Hz sample rate with 512 FFT)
+  let bassSum = 0;
+  for (let i = 0; i < 8; i++) {
+    bassSum += bassDataArray[i];
+  }
+  soundState.bass = bassSum / 8 / 255;
+
+  // High: 4000-12000Hz (bins 23-70 roughly)
+  let highSum = 0;
+  for (let i = 20; i < 60; i++) {
+    highSum += dataArray[i];
+  }
+  soundState.high = highSum / 40 / 255;
+
+  // Smooth values for gradual effects
+  soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.1;
+  soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
+
+  // Detect bass hits (sudden increase)
+  const now = performance.now();
+  const bassThreshold = 0.6;
+  const highThreshold = 0.5;
+
+  if (soundState.bass > bassThreshold && now - soundState.lastBassHit > 150) {
+    soundState.lastBassHit = now;
+    triggerBassHit();
+  }
+
+  if (soundState.high > highThreshold && now - soundState.lastHighHit > 100) {
+    soundState.lastHighHit = now;
+    triggerHighHit();
+  }
+
+  // Update CSS custom properties for sound-reactive styles
+  const root = document.documentElement;
+  root.style.setProperty('--bass-scale', 1 + soundState.bassSmooth * 0.02);
+  root.style.setProperty('--bass-glow', soundState.bassSmooth);
+  root.style.setProperty('--breathe', 1 + soundState.bassSmooth * 0.015);
+
+  // Update visualizer bars
+  updateVisualizer();
+
+  requestAnimationFrame(updateSoundReactive);
+}
+
+function updateVisualizer() {
+  if (!analyser || !bars.length) return;
+
   const step = Math.floor(dataArray.length / bars.length);
   bars.forEach((bar, i) => {
     const value = dataArray[i * step];
-    bar.style.height = `${Math.max(4, (value / 255) * 40)}px`;
+    const height = Math.max(3, (value / 255) * 32);
+    bar.style.height = `${height}px`;
   });
-  requestAnimationFrame(updateVisualizer);
+}
+
+// ============================================
+// LARGE BACKGROUND VISUALIZER - Filled Arc Bars
+// ============================================
+let prevBass = 0;
+let prevHigh = 0;
+
+function initVizCanvas() {
+  if (!vizCanvas) return;
+  setTimeout(resizeVizCanvas, 200);
+  window.addEventListener('resize', resizeVizCanvas);
+}
+
+function resizeVizCanvas() {
+  if (!vizCanvas || !vizCanvas.parentElement) return;
+  vizCanvas.width = vizCanvas.parentElement.clientWidth || 800;
+  vizCanvas.height = vizCanvas.parentElement.clientHeight || 600;
+}
+
+function clearVizCanvas() {
+  if (!vizCtx) return;
+  vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
+  prevBass = 0;
+  prevHigh = 0;
+}
+
+function updateLargeVisualizer() {
+  if (!vizCtx || !isPlaying) return;
+
+  const w = vizCanvas.width;
+  const h = vizCanvas.height;
+
+  if (w === 0 || h === 0) {
+    resizeVizCanvas();
+    requestAnimationFrame(updateLargeVisualizer);
+    return;
+  }
+
+  if (!analyser) {
+    requestAnimationFrame(updateLargeVisualizer);
+    return;
+  }
+
+  // Clear canvas
+  vizCtx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h * 0.55;
+
+  // Get frequency data
+  analyser.getByteFrequencyData(dataArray);
+
+  // Calculate bass (kicks) - low frequencies
+  let bass = 0;
+  for (let i = 0; i < 6; i++) bass += dataArray[i];
+  bass = bass / 6 / 255;
+
+  // Calculate high-mids (snares) - 2-8kHz range
+  let high = 0;
+  for (let i = 15; i < 40; i++) high += dataArray[i];
+  high = high / 25 / 255;
+
+  let totalEnergy = 0;
+  for (let i = 0; i < dataArray.length; i++) totalEnergy += dataArray[i];
+  totalEnergy = totalEnergy / dataArray.length / 255;
+
+  // Transient detection - detect sudden increases (actual hits)
+  const bassTransient = bass - prevBass;
+  const highTransient = high - prevHigh;
+  prevBass = bass * 0.7 + prevBass * 0.3; // Smooth for comparison
+  prevHigh = high * 0.7 + prevHigh * 0.3;
+
+  // Only draw if there's actual sound
+  if (totalEnergy < 0.02) {
+    requestAnimationFrame(updateLargeVisualizer);
+    return;
+  }
+
+  const arcStart = -Math.PI;
+  const arcEnd = 0;
+  const numBars = 20;
+
+  // Draw filled arc bars - from center outward
+  vizCtx.lineCap = 'round';
+  for (let i = 0; i < numBars; i++) {
+    const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
+    const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
+    const value = dataArray[dataIndex] / 255;
+
+    const barLength = value * 350 + 80;
+    const x1 = cx + Math.cos(angle) * 30;
+    const y1 = cy + Math.sin(angle) * 30;
+    const x2 = cx + Math.cos(angle) * barLength;
+    const y2 = cy + Math.sin(angle) * barLength;
+
+    const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
+    const opacity = 0.4 + value * 0.5 - centerDist * 0.1;
+
+    vizCtx.strokeStyle = `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
+    vizCtx.lineWidth = 30;
+    vizCtx.beginPath();
+    vizCtx.moveTo(x1, y1);
+    vizCtx.lineTo(x2, y2);
+    vizCtx.stroke();
+  }
+
+  requestAnimationFrame(updateLargeVisualizer);
+}
+
+// ============================================
+// STORY BLOCKS - Contextual info reveal
+// ============================================
+let storyRevealTimers = [];
+
+function startStoryReveal() {
+  // Clear any existing timers
+  storyRevealTimers.forEach(t => clearTimeout(t));
+  storyRevealTimers = [];
+
+  // Hide all blocks first
+  storyBlocks.forEach(block => block.classList.remove('visible'));
+
+  // Reveal blocks based on their data-delay attribute (in seconds)
+  storyBlocks.forEach(block => {
+    const delay = parseInt(block.dataset.delay || '30', 10) * 1000;
+    const timer = setTimeout(() => {
+      block.classList.add('visible');
+    }, delay);
+    storyRevealTimers.push(timer);
+
+    // Hide again after showing for a while, then loop
+    const hideTimer = setTimeout(() => {
+      block.classList.remove('visible');
+    }, delay + 15000);
+    storyRevealTimers.push(hideTimer);
+  });
+}
+
+function stopStoryReveal() {
+  storyRevealTimers.forEach(t => clearTimeout(t));
+  storyRevealTimers = [];
+  storyBlocks.forEach(block => block.classList.remove('visible'));
 }
 
 // ============================================
@@ -451,17 +727,13 @@ function updateVisualizer() {
 // ============================================
 let tonearmAnimating = false;
 
-// Tonearm positions
 const tonearmSettings = {
-  // Rest position (when not playing - off to the side)
   restRotY: 0,
   restPosX: 0,
   restPosZ: 0,
-  // Start position (outer edge of vinyl - song start)
   startRotY: -0.51,
   startPosX: -150,
   startPosZ: -47,
-  // End position (inner edge near label - song end)
   endRotY: -0.9,
   endPosX: -190,
   endPosZ: -80
@@ -470,7 +742,6 @@ const tonearmSettings = {
 function updateTonearmPosition(songProgress) {
   if (!tonearm) return;
 
-  // Interpolate between start and end positions based on song progress (0 to 1)
   const rotY = tonearmSettings.startRotY + (tonearmSettings.endRotY - tonearmSettings.startRotY) * songProgress;
   const posX = tonearmSettings.startPosX + (tonearmSettings.endPosX - tonearmSettings.startPosX) * songProgress;
   const posZ = tonearmSettings.startPosZ + (tonearmSettings.endPosZ - tonearmSettings.startPosZ) * songProgress;
@@ -489,7 +760,6 @@ function animateTonearm(playing) {
   const startPosX = tonearm.position.x;
   const startPosZ = tonearm.position.z;
 
-  // When playing: go to start position (outer edge), when stopped: go to rest position
   const targetRot = playing
     ? tonearm.userData.startRotation.y + tonearmSettings.startRotY
     : tonearm.userData.startRotation.y + tonearmSettings.restRotY;
@@ -521,27 +791,55 @@ function animateTonearm(playing) {
 function togglePlay() {
   setupAudio();
   if (isPlaying) {
+    isPlaying = false;
     audio.pause();
     document.body.classList.remove('playing');
     animateTonearm(false);
+    stopStoryReveal();
+    clearVizCanvas();
   } else {
+    isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
     animateTonearm(true);
-    updateVisualizer();
+    updateSoundReactive();
+    updateLargeVisualizer();
+    startStoryReveal();
   }
-  isPlaying = !isPlaying;
 }
 
 function loadTrack(index) {
   const track = tracks[index];
   audio.src = track.src;
+
+  // Update track number
   trackNumber.textContent = track.number;
-  trackTitle.innerHTML = track.title;
+  bgTrackNumber.textContent = track.number;
+
+  // Update title with word splitting for animation
+  trackTitle.innerHTML = track.titleWords.map((word, i) =>
+    `<span class="title-word ${i === track.titleWords.length - 1 ? 'title-emphasis' : ''}">` +
+    `${i === track.titleWords.length - 1 ? '<em>' + word + '</em>' : word}</span>`
+  ).join('');
+
   trackArtist.textContent = track.artist;
   producer.textContent = track.producer;
   album.textContent = track.album;
   year.textContent = track.year;
+
+  // Update pull quote
+  if (pullQuote) {
+    pullQuote.querySelector('.quote-text').textContent = track.quote;
+  }
+
+  // Update story blocks
+  if (storyLocation) storyLocation.textContent = track.location;
+  if (storySample) storySample.textContent = track.sample;
+
+  // Update album atmosphere background
+  if (albumAtmosphere && track.cover) {
+    albumAtmosphere.style.backgroundImage = `url(${track.cover})`;
+  }
 
   if (vinyl) {
     vinyl.material.map = createVinylTexture(track);
@@ -578,7 +876,9 @@ audio.addEventListener('loadedmetadata', () => {
 audio.addEventListener('ended', () => {
   document.body.classList.remove('playing');
   animateTonearm(false);
+  stopStoryReveal();
   isPlaying = false;
+  clearVizCanvas();
 });
 
 progressBar.addEventListener('click', (e) => {
@@ -608,4 +908,5 @@ document.addEventListener('keydown', (e) => {
 // INIT
 // ============================================
 initThree();
+initVizCanvas();
 loadTrack(0);
