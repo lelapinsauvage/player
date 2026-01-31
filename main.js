@@ -214,17 +214,14 @@ function createVinyl() {
   const material = new THREE.MeshPhysicalMaterial({
     map: texture,
     normalMap: normalMap,
-    normalScale: new THREE.Vector2(0.4, 0.4),
-    color: 0xffffff,
-    roughness: 0.02,
-    metalness: 1.0,
+    normalScale: new THREE.Vector2(0.5, 0.5),
+    color: 0xaaaaaa,
+    roughness: 0.15,
+    metalness: 0.3,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.0,
-    reflectivity: 1.0,
-    envMapIntensity: 3.0,
-    sheen: 0.1,
-    sheenRoughness: 0.05,
-    sheenColor: new THREE.Color(0xffffff)
+    clearcoatRoughness: 0.1,
+    reflectivity: 0.8,
+    envMapIntensity: 1.5
   });
 
   vinyl = new THREE.Mesh(geometry, material);
@@ -242,90 +239,92 @@ function createVinylTexture(track) {
   const cy = size / 2;
   const radius = size / 2 - 8;
 
-  // Base - bright polished silver/chrome
+  // Base - plastic grey vinyl
   const baseGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-  baseGradient.addColorStop(0, '#f5f5f7');
-  baseGradient.addColorStop(0.3, '#e8e8ea');
-  baseGradient.addColorStop(0.6, '#dcdcde');
-  baseGradient.addColorStop(1, '#c8c8ca');
+  baseGradient.addColorStop(0, '#c5c5c8');
+  baseGradient.addColorStop(0.4, '#b0b0b3');
+  baseGradient.addColorStop(0.7, '#a0a0a3');
+  baseGradient.addColorStop(1, '#909093');
   ctx.fillStyle = baseGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Rim - polished chrome edge
-  const rimGradient = ctx.createRadialGradient(cx, cy, radius - 20, cx, cy, radius);
-  rimGradient.addColorStop(0, 'transparent');
-  rimGradient.addColorStop(0.4, 'rgba(245, 245, 250, 0.7)');
-  rimGradient.addColorStop(0.7, 'rgba(210, 210, 215, 0.9)');
-  rimGradient.addColorStop(1, 'rgba(170, 170, 175, 1)');
-  ctx.fillStyle = rimGradient;
+  // Rim edge
+  ctx.strokeStyle = '#707075';
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
+  ctx.stroke();
 
-  // Vinyl grooves - visible shiny circles
+  // Vinyl grooves - realistic vinyl look
   const labelRadius = 280;
 
-  // Dark groove lines
-  for (let r = radius - 40; r > labelRadius + 25; r -= 2.0) {
-    ctx.strokeStyle = 'rgba(80, 80, 85, 0.4)';
+  // Dense fine grooves (the actual music data grooves)
+  for (let r = radius - 25; r > labelRadius + 15; r -= 1.8) {
+    ctx.strokeStyle = 'rgba(70, 70, 75, 0.6)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  // Shiny highlight between grooves
-  for (let r = radius - 41; r > labelRadius + 26; r -= 2.0) {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.lineWidth = 0.6;
+  // Prominent track separation rings (like between songs)
+  const trackRings = [radius - 60, radius - 150, radius - 240, radius - 330, radius - 420];
+  trackRings.forEach(r => {
+    if (r > labelRadius + 20) {
+      // Dark groove
+      ctx.strokeStyle = '#454550';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Shiny inner edge
+      ctx.strokeStyle = 'rgba(200, 200, 205, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  });
+
+  // Lead-in groove (outer edge)
+  ctx.strokeStyle = '#505055';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 15, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Lead-out groove (near label)
+  ctx.strokeStyle = '#505055';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, labelRadius + 12, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Highlight reflections on grooves
+  for (let r = radius - 40; r > labelRadius + 30; r -= 8) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  // Extra fine detail grooves
-  for (let r = radius - 40; r > labelRadius + 25; r -= 4.0) {
-    ctx.strokeStyle = 'rgba(60, 60, 65, 0.25)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Bright metallic shine - diagonal reflection
+  // Plastic shine - subtle diagonal reflection
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   const shineGradient = ctx.createLinearGradient(0, 0, size, size);
   shineGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  shineGradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.3)');
-  shineGradient.addColorStop(0.45, 'rgba(255, 255, 255, 0.5)');
-  shineGradient.addColorStop(0.55, 'rgba(255, 255, 255, 0.4)');
-  shineGradient.addColorStop(0.75, 'rgba(255, 255, 255, 0.15)');
+  shineGradient.addColorStop(0.35, 'rgba(255, 255, 255, 0.15)');
+  shineGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
+  shineGradient.addColorStop(0.65, 'rgba(255, 255, 255, 0.1)');
   shineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = shineGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
   ctx.arc(cx, cy, labelRadius + 5, 0, Math.PI * 2, true);
-  ctx.fill();
-  ctx.restore();
-
-  // Rainbow iridescence - more visible
-  ctx.save();
-  ctx.globalCompositeOperation = 'overlay';
-  const iridescentGradient = ctx.createConicGradient(Math.PI * 0.3, cx, cy);
-  iridescentGradient.addColorStop(0, 'rgba(255, 180, 180, 0.15)');
-  iridescentGradient.addColorStop(0.17, 'rgba(255, 255, 180, 0.12)');
-  iridescentGradient.addColorStop(0.33, 'rgba(180, 255, 180, 0.15)');
-  iridescentGradient.addColorStop(0.5, 'rgba(180, 255, 255, 0.12)');
-  iridescentGradient.addColorStop(0.67, 'rgba(180, 180, 255, 0.15)');
-  iridescentGradient.addColorStop(0.83, 'rgba(255, 180, 255, 0.12)');
-  iridescentGradient.addColorStop(1, 'rgba(255, 180, 180, 0.15)');
-  ctx.fillStyle = iridescentGradient;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius - 15, 0, Math.PI * 2);
-  ctx.arc(cx, cy, labelRadius + 10, 0, Math.PI * 2, true);
   ctx.fill();
   ctx.restore();
 
@@ -409,6 +408,12 @@ function animate() {
       const pulse = Math.sin(time * 2) * 0.1;
       vinyl.material.sheen = 0.5 + pulse;
     }
+
+    // Smoothly update tonearm position based on song progress (only after initial animation completes)
+    if (audio.duration && tonearm && !tonearmAnimating) {
+      const songProgress = audio.currentTime / audio.duration;
+      updateTonearmPosition(songProgress);
+    }
   }
 
   renderer.render(scene, camera);
@@ -444,19 +449,56 @@ function updateVisualizer() {
 // ============================================
 // TONEARM
 // ============================================
-const tonearmPlaying = { rotY: -0.7, posX: -164, posZ: -65 };
+let tonearmAnimating = false;
+
+// Tonearm positions
+const tonearmSettings = {
+  // Rest position (when not playing - off to the side)
+  restRotY: 0,
+  restPosX: 0,
+  restPosZ: 0,
+  // Start position (outer edge of vinyl - song start)
+  startRotY: -0.51,
+  startPosX: -150,
+  startPosZ: -47,
+  // End position (inner edge near label - song end)
+  endRotY: -0.9,
+  endPosX: -190,
+  endPosZ: -80
+};
+
+function updateTonearmPosition(songProgress) {
+  if (!tonearm) return;
+
+  // Interpolate between start and end positions based on song progress (0 to 1)
+  const rotY = tonearmSettings.startRotY + (tonearmSettings.endRotY - tonearmSettings.startRotY) * songProgress;
+  const posX = tonearmSettings.startPosX + (tonearmSettings.endPosX - tonearmSettings.startPosX) * songProgress;
+  const posZ = tonearmSettings.startPosZ + (tonearmSettings.endPosZ - tonearmSettings.startPosZ) * songProgress;
+
+  tonearm.rotation.y = tonearm.userData.startRotation.y + rotY;
+  tonearm.position.x = tonearm.userData.startPosition.x + posX;
+  tonearm.position.z = tonearm.userData.startPosition.z + posZ;
+}
 
 function animateTonearm(playing) {
   if (!tonearm) return;
+  tonearmAnimating = true;
   const duration = 800;
   const start = performance.now();
   const startRot = tonearm.rotation.y;
   const startPosX = tonearm.position.x;
   const startPosZ = tonearm.position.z;
 
-  const targetRot = playing ? tonearm.userData.startRotation.y + tonearmPlaying.rotY : tonearm.userData.startRotation.y;
-  const targetPosX = playing ? tonearm.userData.startPosition.x + tonearmPlaying.posX : tonearm.userData.startPosition.x;
-  const targetPosZ = playing ? tonearm.userData.startPosition.z + tonearmPlaying.posZ : tonearm.userData.startPosition.z;
+  // When playing: go to start position (outer edge), when stopped: go to rest position
+  const targetRot = playing
+    ? tonearm.userData.startRotation.y + tonearmSettings.startRotY
+    : tonearm.userData.startRotation.y + tonearmSettings.restRotY;
+  const targetPosX = playing
+    ? tonearm.userData.startPosition.x + tonearmSettings.startPosX
+    : tonearm.userData.startPosition.x + tonearmSettings.restPosX;
+  const targetPosZ = playing
+    ? tonearm.userData.startPosition.z + tonearmSettings.startPosZ
+    : tonearm.userData.startPosition.z + tonearmSettings.restPosZ;
 
   function tick() {
     const progress = Math.min((performance.now() - start) / duration, 1);
@@ -464,7 +506,11 @@ function animateTonearm(playing) {
     tonearm.rotation.y = startRot + (targetRot - startRot) * eased;
     tonearm.position.x = startPosX + (targetPosX - startPosX) * eased;
     tonearm.position.z = startPosZ + (targetPosZ - startPosZ) * eased;
-    if (progress < 1) requestAnimationFrame(tick);
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      tonearmAnimating = false;
+    }
   }
   tick();
 }
