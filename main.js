@@ -667,7 +667,7 @@ function updateLargeVisualizer() {
     const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
     const value = dataArray[dataIndex] / 255;
 
-    const barLength = value * 350 + 80;
+    const barLength = value * 270 + 60;
     const x1 = cx + Math.cos(angle) * 30;
     const y1 = cy + Math.sin(angle) * 30;
     const x2 = cx + Math.cos(angle) * barLength;
