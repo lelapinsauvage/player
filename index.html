@@ -10,70 +10,74 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Aurora background - full page -->
+  <canvas id="aurora-canvas"></canvas>
+
   <!-- Grain overlay -->
   <div class="grain"></div>
 
   <!-- Main container -->
   <div class="container">
-    <!-- Left panel - Typography -->
+    <!-- Left panel -->
     <div class="left-panel">
-      <!-- Environmental album art background -->
+      <!-- Album atmosphere -->
       <div class="album-atmosphere" id="album-atmosphere"></div>
 
-      <!-- Top section -->
-      <header class="header">
-        <span class="now-playing">Now Playing</span>
-      </header>
+      <!-- Content wrapper for vertical centering -->
+      <div class="content">
+        <!-- Context line -->
+        <div class="context">
+          <span class="context-item" id="album">good kid, m.A.A.d city</span>
+          <span class="context-dot"></span>
+          <span class="context-item" id="year">2012</span>
+        </div>
 
-      <!-- Center - Track info -->
-      <div class="track-info">
-        <span class="track-index" id="track-number">01</span>
+        <!-- Main info -->
+        <div class="main-info">
+          <h1 class="track-title" id="track-title">
+            <span class="title-word">Money</span>
+            <span class="title-word"><em>Trees</em></span>
+          </h1>
+          <p class="track-artist" id="track-artist">Kendrick Lamar</p>
+        </div>
 
-        <h1 class="track-title" id="track-title">
-          <span class="title-word">Money</span>
-          <span class="title-word"><em>Trees</em></span>
-        </h1>
+        <!-- Producer credit -->
+        <div class="credit">
+          <span class="credit-label">Produced by</span>
+          <span class="credit-value" id="producer">DJ Dahi</span>
+        </div>
 
-        <p class="track-artist" id="track-artist">Kendrick Lamar</p>
+        <!-- Minimal play control -->
+        <button class="play-control" id="play-pill">
+          <div class="play-icon-wrap" id="pill-icon">
+            <svg class="icon-play" width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+              <path d="M0 0v12l10-6z"/>
+            </svg>
+            <svg class="icon-pause" width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+              <rect x="0" y="0" width="3" height="12"/>
+              <rect x="7" y="0" width="3" height="12"/>
+            </svg>
+          </div>
+        </button>
       </div>
 
-      <!-- Bottom section -->
-      <footer class="footer">
-        <!-- Metadata grid -->
-        <div class="metadata">
-          <div class="meta-item">
-            <span class="meta-label">Album</span>
-            <span class="meta-value" id="album">good kid, m.A.A.d city</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Year</span>
-            <span class="meta-value" id="year">2012</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Produced by</span>
-            <span class="meta-value" id="producer">DJ Dahi</span>
-          </div>
+      <!-- Progress - fixed to bottom -->
+      <div class="player-controls">
+        <div class="progress-bar" id="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
         </div>
-
-        <!-- Progress -->
-        <div class="progress-section">
-          <div class="progress-bar" id="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
-            <div class="scrubber" id="scrubber"></div>
-          </div>
-          <div class="time-display">
-            <span class="time" id="time-current">0:00</span>
-            <span class="time" id="time-total">0:00</span>
-          </div>
+        <div class="time-row">
+          <span class="time" id="time-current">0:00</span>
+          <span class="time" id="time-total">0:00</span>
         </div>
-      </footer>
+      </div>
     </div>
 
     <!-- Right panel - 3D Vinyl -->
     <div class="right-panel">
-      <!-- Large background visualizer -->
-      <canvas id="viz-canvas"></canvas>
+      <canvas id="viz-bars"></canvas>
       <canvas id="vinyl-canvas"></canvas>
+
 
       <!-- Navigation -->
       <div class="nav">
@@ -93,11 +97,14 @@
 
   <!-- Hidden elements for JS compatibility -->
   <div style="display:none">
+    <span id="track-number"></span>
     <div id="bg-track-number"></div>
     <div id="pull-quote"><span class="quote-text"></span></div>
     <div id="story-location"></div>
     <div id="story-sample"></div>
     <div id="visualizer"></div>
+    <div id="scrubber"></div>
+    <canvas id="viz-canvas"></canvas>
   </div>
 
   <audio id="audio" crossorigin="anonymous"></audio>

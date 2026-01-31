@@ -56,6 +56,12 @@ const bars = visualizer ? visualizer.querySelectorAll('.bar') : [];
 const vizCanvas = document.getElementById('viz-canvas');
 const vizCtx = vizCanvas ? vizCanvas.getContext('2d') : null;
 
+// New UI elements
+const auroraCanvas = document.getElementById('aurora-canvas');
+const playPill = document.getElementById('play-pill');
+const vizBars = document.getElementById('viz-bars');
+const vizBarsCtx = vizBars ? vizBars.getContext('2d') : null;
+
 // ============================================
 // THREE.JS SETUP
 // ============================================
@@ -548,12 +554,12 @@ function updateSoundReactive() {
 
   if (soundState.bass > bassThreshold && now - soundState.lastBassHit > 150) {
     soundState.lastBassHit = now;
-    triggerBassHit();
+    // Bass hit - can trigger visual effects here
   }
 
   if (soundState.high > highThreshold && now - soundState.lastHighHit > 100) {
     soundState.lastHighHit = now;
-    triggerHighHit();
+    // High hit - can trigger visual effects here
   }
 
   // Update CSS custom properties for sound-reactive styles
@@ -580,79 +586,276 @@ function updateVisualizer() {
 }
 
 // ============================================
-// LARGE BACKGROUND VISUALIZER - Filled Arc Bars
+// AURORA WEBGL BACKGROUND
 // ============================================
-let prevBass = 0;
-let prevHigh = 0;
+let auroraGl, auroraProgram, auroraTime = 0;
+let auroraBassSmooth = 0, auroraHighSmooth = 0;
+let auroraPlaying = 0; // 0 = paused/greyscale, 1 = playing/color
 
-function initVizCanvas() {
-  if (!vizCanvas) return;
-  setTimeout(resizeVizCanvas, 200);
-  window.addEventListener('resize', resizeVizCanvas);
+// Album palette colors (will be updated per track)
+const auroraColors = [
+  [0.77, 0.64, 0.35], // Gold
+  [0.15, 0.12, 0.08], // Dark brown
+  [0.4, 0.3, 0.2],    // Warm brown
+  [0.1, 0.08, 0.06]   // Near black
+];
+
+function initAurora() {
+  if (!auroraCanvas) return;
+
+  auroraGl = auroraCanvas.getContext('webgl') || auroraCanvas.getContext('experimental-webgl');
+  if (!auroraGl) return;
+
+  const gl = auroraGl;
+
+  // Vertex shader
+  const vsSource = `
+    attribute vec2 a_position;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_position * 0.5 + 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+
+  // Fragment shader - Aurora/Gradient mesh effect
+  const fsSource = `
+    precision mediump float;
+    varying vec2 v_uv;
+    uniform float u_time;
+    uniform float u_bass;
+    uniform float u_high;
+    uniform float u_playing;
+    uniform vec2 u_resolution;
+    uniform vec3 u_color1;
+    uniform vec3 u_color2;
+    uniform vec3 u_color3;
+    uniform vec3 u_color4;
+
+    // Simplex noise functions
+    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+    float snoise(vec2 v) {
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                         -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy));
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1;
+      i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod289(i);
+      vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                              + i.x + vec3(0.0, i1.x, 1.0));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+                              dot(x12.zw,x12.zw)), 0.0);
+      m = m*m;
+      m = m*m;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    float fbm(vec2 p) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      for (int i = 0; i < 4; i++) {
+        value += amplitude * snoise(p);
+        p *= 2.0;
+        amplitude *= 0.5;
+      }
+      return value;
+    }
+
+    void main() {
+      vec2 uv = v_uv;
+      vec2 aspect = vec2(u_resolution.x / u_resolution.y, 1.0);
+
+      // Slow time with bass-reactive breathing
+      float t = u_time * 0.08;
+      float breathe = 1.0 + u_bass * 0.15;
+
+      // Create organic blob shapes
+      float n1 = fbm(uv * 1.5 * aspect + vec2(t * 0.3, t * 0.2));
+      float n2 = fbm(uv * 2.0 * aspect + vec2(-t * 0.25, t * 0.15) + 5.0);
+      float n3 = fbm(uv * 1.2 * aspect + vec2(t * 0.2, -t * 0.3) + 10.0);
+
+      // Add high-frequency turbulence on highs
+      float turbulence = u_high * 0.3;
+      n1 += fbm(uv * 4.0 + t) * turbulence;
+
+      // Mix colors based on noise
+      vec3 color = mix(u_color1, u_color2, smoothstep(-0.3, 0.5, n1));
+      color = mix(color, u_color3, smoothstep(-0.2, 0.6, n2));
+      color = mix(color, u_color4, smoothstep(0.0, 0.8, n3));
+
+      // Add subtle glow in center
+      float centerGlow = 1.0 - length((uv - 0.5) * aspect) * 1.2;
+      centerGlow = max(0.0, centerGlow);
+      color += u_color1 * centerGlow * 0.15 * breathe;
+
+      // Convert to greyscale when not playing
+      float grey = dot(color, vec3(0.299, 0.587, 0.114));
+      vec3 greyColor = vec3(grey);
+      color = mix(greyColor, color, u_playing);
+
+      // Slightly dimmer when paused
+      float alpha = mix(0.08, 0.12 + u_bass * 0.03, u_playing);
+
+      gl_FragColor = vec4(color, alpha);
+    }
+  `;
+
+  // Compile shaders
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, vsSource);
+  gl.compileShader(vs);
+
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, fsSource);
+  gl.compileShader(fs);
+
+  // Create program
+  auroraProgram = gl.createProgram();
+  gl.attachShader(auroraProgram, vs);
+  gl.attachShader(auroraProgram, fs);
+  gl.linkProgram(auroraProgram);
+  gl.useProgram(auroraProgram);
+
+  // Set up geometry (full-screen quad)
+  const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+  const posLoc = gl.getAttribLocation(auroraProgram, 'a_position');
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  // Enable blending
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  resizeAurora();
+  window.addEventListener('resize', resizeAurora);
 }
 
-function resizeVizCanvas() {
-  if (!vizCanvas || !vizCanvas.parentElement) return;
-  vizCanvas.width = vizCanvas.parentElement.clientWidth || 800;
-  vizCanvas.height = vizCanvas.parentElement.clientHeight || 600;
+function resizeAurora() {
+  if (!auroraCanvas || !auroraGl) return;
+  auroraCanvas.width = window.innerWidth;
+  auroraCanvas.height = window.innerHeight;
+  auroraGl.viewport(0, 0, auroraCanvas.width, auroraCanvas.height);
 }
 
-function clearVizCanvas() {
-  if (!vizCtx) return;
-  vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
-  prevBass = 0;
-  prevHigh = 0;
+function updateAurora() {
+  if (!auroraGl || !auroraProgram) {
+    requestAnimationFrame(updateAurora);
+    return;
+  }
+
+  const gl = auroraGl;
+
+  // Only advance time when playing
+  if (isPlaying) {
+    auroraTime += 0.016;
+  }
+
+  // Smooth transition for playing state
+  const targetPlaying = isPlaying ? 1 : 0;
+  auroraPlaying += (targetPlaying - auroraPlaying) * 0.03;
+
+  // Smooth audio values
+  if (analyser && isPlaying) {
+    analyser.getByteFrequencyData(dataArray);
+    let bass = 0, high = 0;
+    for (let i = 0; i < 8; i++) bass += dataArray[i];
+    for (let i = 20; i < 60; i++) high += dataArray[i];
+    bass = bass / 8 / 255;
+    high = high / 40 / 255;
+    auroraBassSmooth += (bass - auroraBassSmooth) * 0.08;
+    auroraHighSmooth += (high - auroraHighSmooth) * 0.1;
+  } else {
+    auroraBassSmooth *= 0.95;
+    auroraHighSmooth *= 0.95;
+  }
+
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.useProgram(auroraProgram);
+
+  // Set uniforms
+  gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_time'), auroraTime);
+  gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_bass'), auroraBassSmooth);
+  gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_high'), auroraHighSmooth);
+  gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_playing'), auroraPlaying);
+  gl.uniform2f(gl.getUniformLocation(auroraProgram, 'u_resolution'), auroraCanvas.width, auroraCanvas.height);
+  gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color1'), auroraColors[0]);
+  gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color2'), auroraColors[1]);
+  gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color3'), auroraColors[2]);
+  gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color4'), auroraColors[3]);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  requestAnimationFrame(updateAurora);
 }
 
-function updateLargeVisualizer() {
-  if (!vizCtx || !isPlaying) return;
+// ============================================
+// ARC BARS VISUALIZER (behind vinyl)
+// ============================================
+function initVizBars() {
+  if (!vizBars) return;
+  resizeVizBars();
+  window.addEventListener('resize', resizeVizBars);
+}
 
-  const w = vizCanvas.width;
-  const h = vizCanvas.height;
+function resizeVizBars() {
+  if (!vizBars || !vizBars.parentElement) return;
+  vizBars.width = vizBars.parentElement.clientWidth;
+  vizBars.height = vizBars.parentElement.clientHeight;
+}
+
+function updateVizBars() {
+  if (!vizBarsCtx || !isPlaying) {
+    if (isPlaying) requestAnimationFrame(updateVizBars);
+    return;
+  }
+
+  const w = vizBars.width;
+  const h = vizBars.height;
 
   if (w === 0 || h === 0) {
-    resizeVizCanvas();
-    requestAnimationFrame(updateLargeVisualizer);
+    resizeVizBars();
+    requestAnimationFrame(updateVizBars);
     return;
   }
 
   if (!analyser) {
-    requestAnimationFrame(updateLargeVisualizer);
+    requestAnimationFrame(updateVizBars);
     return;
   }
 
-  // Clear canvas
-  vizCtx.clearRect(0, 0, w, h);
+  vizBarsCtx.clearRect(0, 0, w, h);
 
   const cx = w / 2;
   const cy = h * 0.55;
 
-  // Get frequency data
   analyser.getByteFrequencyData(dataArray);
-
-  // Calculate bass (kicks) - low frequencies
-  let bass = 0;
-  for (let i = 0; i < 6; i++) bass += dataArray[i];
-  bass = bass / 6 / 255;
-
-  // Calculate high-mids (snares) - 2-8kHz range
-  let high = 0;
-  for (let i = 15; i < 40; i++) high += dataArray[i];
-  high = high / 25 / 255;
 
   let totalEnergy = 0;
   for (let i = 0; i < dataArray.length; i++) totalEnergy += dataArray[i];
   totalEnergy = totalEnergy / dataArray.length / 255;
 
-  // Transient detection - detect sudden increases (actual hits)
-  const bassTransient = bass - prevBass;
-  const highTransient = high - prevHigh;
-  prevBass = bass * 0.7 + prevBass * 0.3; // Smooth for comparison
-  prevHigh = high * 0.7 + prevHigh * 0.3;
-
-  // Only draw if there's actual sound
   if (totalEnergy < 0.02) {
-    requestAnimationFrame(updateLargeVisualizer);
+    requestAnimationFrame(updateVizBars);
     return;
   }
 
@@ -660,8 +863,7 @@ function updateLargeVisualizer() {
   const arcEnd = 0;
   const numBars = 20;
 
-  // Draw filled arc bars - from center outward
-  vizCtx.lineCap = 'round';
+  vizBarsCtx.lineCap = 'round';
   for (let i = 0; i < numBars; i++) {
     const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
     const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
@@ -676,15 +878,24 @@ function updateLargeVisualizer() {
     const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
     const opacity = 0.4 + value * 0.5 - centerDist * 0.1;
 
-    vizCtx.strokeStyle = `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
-    vizCtx.lineWidth = 30;
-    vizCtx.beginPath();
-    vizCtx.moveTo(x1, y1);
-    vizCtx.lineTo(x2, y2);
-    vizCtx.stroke();
+    vizBarsCtx.strokeStyle = `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
+    vizBarsCtx.lineWidth = 30;
+    vizBarsCtx.beginPath();
+    vizBarsCtx.moveTo(x1, y1);
+    vizBarsCtx.lineTo(x2, y2);
+    vizBarsCtx.stroke();
   }
 
-  requestAnimationFrame(updateLargeVisualizer);
+  requestAnimationFrame(updateVizBars);
+}
+
+// ============================================
+// PLAY CONTROLS
+// ============================================
+function initPlayControls() {
+  if (playPill) {
+    playPill.addEventListener('click', togglePlay);
+  }
 }
 
 // ============================================
@@ -796,14 +1007,13 @@ function togglePlay() {
     document.body.classList.remove('playing');
     animateTonearm(false);
     stopStoryReveal();
-    clearVizCanvas();
   } else {
     isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
     animateTonearm(true);
     updateSoundReactive();
-    updateLargeVisualizer();
+    updateVizBars();
     startStoryReveal();
   }
 }
@@ -820,7 +1030,7 @@ function loadTrack(index) {
   trackTitle.innerHTML = track.titleWords.map((word, i) =>
     `<span class="title-word ${i === track.titleWords.length - 1 ? 'title-emphasis' : ''}">` +
     `${i === track.titleWords.length - 1 ? '<em>' + word + '</em>' : word}</span>`
-  ).join('');
+  ).join(' ');
 
   trackArtist.textContent = track.artist;
   producer.textContent = track.producer;
@@ -865,7 +1075,7 @@ function prevTrack() {
 audio.addEventListener('timeupdate', () => {
   const pct = (audio.currentTime / audio.duration) * 100;
   progressFill.style.width = `${pct}%`;
-  scrubber.style.left = `${pct}%`;
+  if (scrubber) scrubber.style.left = `${pct}%`;
   timeCurrent.textContent = formatTime(audio.currentTime);
 });
 
@@ -878,7 +1088,6 @@ audio.addEventListener('ended', () => {
   animateTonearm(false);
   stopStoryReveal();
   isPlaying = false;
-  clearVizCanvas();
 });
 
 progressBar.addEventListener('click', (e) => {
@@ -908,5 +1117,10 @@ document.addEventListener('keydown', (e) => {
 // INIT
 // ============================================
 initThree();
-initVizCanvas();
+initAurora();
+initVizBars();
+initPlayControls();
 loadTrack(0);
+
+// Start aurora animation loop
+requestAnimationFrame(updateAurora);
