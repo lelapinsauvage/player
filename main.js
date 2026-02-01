@@ -97,35 +97,6 @@ const tracks = [
     }
   },
   {
-    title: 'Kick in the <em>Door</em>',
-    titleWords: ['Kick in the', 'Door'],
-    artist: 'The Notorious B.I.G.',
-    album: 'Life After Death',
-    producer: 'DJ Premier',
-    year: '1997',
-    catalog: 'BIG-007',
-    number: '07',
-    src: 'kick-in-the-door.mp3',
-    labelColor: '#1a1a1a',
-    accentColor: '#ffd54f',
-    quote: '"Your reign on the top was short like leprechauns"',
-    location: 'D&D Studios, New York',
-    sample: '"Kick in the Door" by Screamin\' Jay Hawkins',
-    cover: 'covers/lifeafterdeath.jpg',
-    // Soul parameters - raw, aggressive, 90s boom bap
-    soul: {
-      colorA: [0.1, 0.1, 0.1],       // Near black
-      colorB: [1.0, 0.84, 0.31],     // Gold accent
-      noiseScale: 2.5,
-      noiseSpeed: 0.25,
-      baseDisplacement: 0.4,
-      bassReactivity: 1.2,
-      highReactivity: 0.4,
-      fresnelPower: 2.0,
-      opacity: 0.95
-    }
-  },
-  {
     title: '<em>HUMBLE.</em>',
     titleWords: ['HUMBLE.'],
     artist: 'Kendrick Lamar',
@@ -157,32 +128,33 @@ const tracks = [
     }
   },
   {
-    title: 'The Next <em>Episode</em>',
-    titleWords: ['The Next', 'Episode'],
-    artist: 'Dr. Dre ft. Snoop Dogg',
-    album: '2001',
-    producer: 'Dr. Dre',
-    year: '1999',
-    catalog: 'DRE-009',
-    number: '09',
-    src: 'next-episode.mp3',
-    labelColor: '#2ecc40',
-    accentColor: '#66bb6a',
-    quote: '"Smoke weed everyday"',
-    location: 'Record One, Los Angeles',
-    sample: '"The Edge" by David McCallum',
-    cover: 'covers/2001.jpg',
-    // Soul parameters - G-funk, smooth, hazy green smoke
+    title: 'Lucid <em>Dreams</em>',
+    titleWords: ['Lucid', 'Dreams'],
+    artist: 'Juice WRLD',
+    album: 'Goodbye & Good Riddance',
+    producer: 'Nick Mira',
+    year: '2018',
+    catalog: 'JW-005',
+    number: '05',
+    src: 'lucid-dreams.mp3',
+    labelColor: '#7b1fa2',
+    accentColor: '#ba68c8',
+    quote: '"I still see your shadows in my room"',
+    location: 'Los Angeles, CA',
+    sample: '"Shape of My Heart" by Sting',
+    cover: 'covers/gbgr.jpg',
+    asciiBg: 'videos/lucid-dreams.mp4',
+    // Soul parameters - dreamy, melancholic, purple haze
     soul: {
-      colorA: [0.18, 0.80, 0.25],    // Weed green
-      colorB: [0.40, 0.73, 0.42],    // Lighter green
-      noiseScale: 1.5,
-      noiseSpeed: 0.12,
+      colorA: [0.48, 0.12, 0.64],    // Deep purple
+      colorB: [0.73, 0.41, 0.78],    // Light purple
+      noiseScale: 1.6,
+      noiseSpeed: 0.14,
       baseDisplacement: 0.35,
-      bassReactivity: 0.9,
-      highReactivity: 0.3,
-      fresnelPower: 2.2,
-      opacity: 0.75
+      bassReactivity: 0.8,
+      highReactivity: 0.5,
+      fresnelPower: 2.4,
+      opacity: 0.8
     }
   },
   {
@@ -247,64 +219,6 @@ const tracks = [
     }
   },
   {
-    title: 'Empire State of <em>Mind</em>',
-    titleWords: ['Empire State of', 'Mind'],
-    artist: 'Jay-Z ft. Alicia Keys',
-    album: 'The Blueprint 3',
-    producer: 'Al Shux',
-    year: '2009',
-    catalog: 'JZ-012',
-    number: '12',
-    src: 'empire-state.mp3',
-    labelColor: '#c41e3a',
-    accentColor: '#42a5f5',
-    quote: '"Concrete jungle where dreams are made of"',
-    location: 'Roc the Mic Studios, New York',
-    sample: '"Love on a Two-Way Street" by The Moments',
-    cover: 'covers/blueprint3.jpg',
-    // Soul parameters - anthemic, NYC lights, triumphant
-    soul: {
-      colorA: [0.26, 0.65, 0.96],    // NYC blue
-      colorB: [0.77, 0.12, 0.23],    // Red accent
-      noiseScale: 1.6,
-      noiseSpeed: 0.18,
-      baseDisplacement: 0.35,
-      bassReactivity: 0.9,
-      highReactivity: 0.5,
-      fresnelPower: 2.8,
-      opacity: 0.9
-    }
-  },
-  {
-    title: 'Praise the <em>Lord</em>',
-    titleWords: ['Praise the', 'Lord'],
-    artist: 'A$AP Rocky ft. Skepta',
-    album: 'Testing',
-    producer: 'Skepta, Boy 1da',
-    year: '2018',
-    catalog: 'AR-013',
-    number: '13',
-    src: 'praise-the-lord.mp3',
-    labelColor: '#e6c52c',
-    accentColor: '#ffee58',
-    quote: '"I might take your girl and kidnap her"',
-    location: 'Shangri-La, Malibu',
-    sample: 'Original Composition',
-    cover: 'covers/testing.jpg',
-    // Soul parameters - UK grime meets US swag, bouncy
-    soul: {
-      colorA: [0.90, 0.77, 0.17],    // Gold yellow
-      colorB: [1.0, 0.93, 0.35],     // Bright yellow
-      noiseScale: 2.2,
-      noiseSpeed: 0.32,
-      baseDisplacement: 0.42,
-      bassReactivity: 1.2,
-      highReactivity: 0.65,
-      fresnelPower: 2.0,
-      opacity: 0.88
-    }
-  },
-  {
     title: '<em>Congratulations</em>',
     titleWords: ['Congratulations'],
     artist: 'Post Malone ft. Quavo',
@@ -320,6 +234,7 @@ const tracks = [
     location: 'Republic Studios, Los Angeles',
     sample: 'Original Composition',
     cover: 'covers/stoney.jpg',
+    asciiBg: 'videos/congratulations.mp4',
     // Soul parameters - celebratory, warm, victorious
     soul: {
       colorA: [0.55, 0.45, 0.33],    // Warm brown
@@ -331,35 +246,6 @@ const tracks = [
       highReactivity: 0.4,
       fresnelPower: 2.5,
       opacity: 0.82
-    }
-  },
-  {
-    title: 'Bad and <em>Boujee</em>',
-    titleWords: ['Bad and', 'Boujee'],
-    artist: 'Migos ft. Lil Uzi Vert',
-    album: 'Culture',
-    producer: 'Metro Boomin',
-    year: '2016',
-    catalog: 'MG-015',
-    number: '15',
-    src: 'bad-and-boujee.mp3',
-    labelColor: '#c41e3a',
-    accentColor: '#ef5350',
-    quote: '"Raindrop, drop top"',
-    location: 'Triangle Sound Studios, Atlanta',
-    sample: 'Original Composition',
-    cover: 'covers/culture2.jpg',
-    // Soul parameters - trap, hard, Atlanta drip
-    soul: {
-      colorA: [0.77, 0.12, 0.23],    // Deep red
-      colorB: [0.94, 0.33, 0.31],    // Bright red
-      noiseScale: 2.6,
-      noiseSpeed: 0.35,
-      baseDisplacement: 0.48,
-      bassReactivity: 1.4,
-      highReactivity: 0.7,
-      fresnelPower: 1.8,
-      opacity: 0.95
     }
   }
 ];
