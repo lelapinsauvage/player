@@ -1667,15 +1667,65 @@ let menuOpen = false;
 
 function openMenu() {
   menuOpen = true;
-  menuOverlay.classList.add('open');
-  songMenu.classList.add('open');
   populateMenu();
+
+  // Step 1: Hide button, start menu at button size
+  menuBtn.classList.add('hidden');
+  songMenu.classList.remove('closing');
+  songMenu.classList.remove('shrunk');
+  songMenu.style.width = '180px';
+  songMenu.style.height = '48px';
+  songMenu.classList.add('open');
+  songMenu.classList.add('expanding');
+  menuOverlay.classList.add('open');
+
+  // Step 2: Expand to full size
+  setTimeout(() => {
+    if (menuOpen) {
+      songMenu.style.width = '';
+      songMenu.style.height = '';
+      songMenu.classList.remove('expanding');
+    }
+  }, 50);
 }
 
 function closeMenu() {
   menuOpen = false;
+
+  // Lock current dimensions
+  const currentHeight = songMenu.offsetHeight;
+  const currentWidth = songMenu.offsetWidth;
+  songMenu.style.height = currentHeight + 'px';
+  songMenu.style.width = currentWidth + 'px';
+
+  // Start closing
+  songMenu.classList.add('closing');
   menuOverlay.classList.remove('open');
-  songMenu.classList.remove('open');
+
+  // Content fades, then shrink+blur+fade all together
+  setTimeout(() => {
+    if (!menuOpen) {
+      songMenu.style.height = '48px';
+      songMenu.style.width = '180px';
+      songMenu.classList.add('shrunk');
+    }
+  }, 50);
+
+  // Button fades in as menu fades out - crossfade
+  setTimeout(() => {
+    if (!menuOpen) menuBtn.classList.remove('hidden');
+  }, 80);
+
+  // Clean up
+  setTimeout(() => {
+    if (!menuOpen) {
+      songMenu.classList.remove('open');
+      songMenu.classList.remove('closing');
+      songMenu.classList.remove('shrunk');
+      songMenu.style.height = '';
+      songMenu.style.width = '';
+    }
+  }, 350);
 }
 
 function toggleMenu() {
