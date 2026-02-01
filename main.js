@@ -20,6 +20,70 @@ const tracks = [
     location: 'TDE Studios, Carson, CA',
     sample: '"Silver Soul" by Beach House',
     cover: 'cover.jpg'
+  },
+  {
+    title: '<em>Nights</em>',
+    titleWords: ['Nights'],
+    artist: 'Frank Ocean',
+    album: 'Blonde',
+    producer: 'Frank Ocean',
+    year: '2016',
+    catalog: 'FO-002',
+    number: '02',
+    src: 'money-trees.mp3',
+    labelColor: '#4a7c59',
+    quote: '"Every night fucks every day up"',
+    location: 'Westlake Recording Studios',
+    sample: 'Original Composition',
+    cover: 'covers/blonde.jpg'
+  },
+  {
+    title: 'Everything In Its <em>Right Place</em>',
+    titleWords: ['Everything', 'In Its', 'Right Place'],
+    artist: 'Radiohead',
+    album: 'Kid A',
+    producer: 'Nigel Godrich',
+    year: '2000',
+    catalog: 'RH-003',
+    number: '03',
+    src: 'money-trees.mp3',
+    labelColor: '#d63031',
+    quote: '"Yesterday I woke up sucking a lemon"',
+    location: 'Guillaume Tell Studios, Paris',
+    sample: 'Original Composition',
+    cover: 'covers/kida.jpg'
+  },
+  {
+    title: '<em>Voyager</em>',
+    titleWords: ['Voyager'],
+    artist: 'Daft Punk',
+    album: 'Discovery',
+    producer: 'Daft Punk',
+    year: '2001',
+    catalog: 'DP-004',
+    number: '04',
+    src: 'money-trees.mp3',
+    labelColor: '#0984e3',
+    quote: '"Boundaries are made to be broken"',
+    location: 'Daft House, Paris',
+    sample: 'Original Composition',
+    cover: 'covers/discovery.jpg'
+  },
+  {
+    title: 'See You <em>Again</em>',
+    titleWords: ['See You', 'Again'],
+    artist: 'Tyler, The Creator',
+    album: 'Flower Boy',
+    producer: 'Tyler, The Creator',
+    year: '2017',
+    catalog: 'TC-005',
+    number: '05',
+    src: 'money-trees.mp3',
+    labelColor: '#fdcb6e',
+    quote: '"Okay, okay, okay, okay"',
+    location: 'Glenwood Place Studios, Burbank',
+    sample: 'Original Composition',
+    cover: 'covers/flowerboy.jpg'
   }
 ];
 
@@ -62,6 +126,15 @@ const playPill = document.getElementById('play-pill');
 const vizBars = document.getElementById('viz-bars');
 const vizBarsCtx = vizBars ? vizBars.getContext('2d') : null;
 
+// Menu elements
+const menuBtn = document.getElementById('menu-btn');
+const menuOverlay = document.getElementById('menu-overlay');
+const songMenu = document.getElementById('song-menu');
+const menuClose = document.getElementById('menu-close');
+const menuList = document.getElementById('menu-list');
+const nowPlayingCover = document.getElementById('now-playing-cover');
+const nowPlayingTitle = document.getElementById('now-playing-title');
+
 // ============================================
 // THREE.JS SETUP
 // ============================================
@@ -75,7 +148,11 @@ const mouse = { x: 0, y: 0 };
 const targetRotation = { x: 0, y: 0 };
 const currentRotation = { x: 0, y: 0 };
 
-const vinylPosition = { x: -18, y: 33.5, z: 46 };
+// Vinyl positions - on turntable vs off (initial state)
+const vinylOnPosition = { x: -18, y: 33.5, z: 46 };
+const vinylOffPosition = { x: -18, y: 120, z: 46 }; // Directly above turntable
+const vinylPosition = { ...vinylOffPosition }; // Start off turntable
+let vinylAnimating = false;
 
 function initThree() {
   scene = new THREE.Scene();
@@ -83,8 +160,8 @@ function initThree() {
 
   const aspect = canvas.parentElement.clientWidth / canvas.parentElement.clientHeight;
   camera = new THREE.PerspectiveCamera(35, aspect, 0.1, 1000);
-  camera.position.set(0, 180, 400);
-  camera.lookAt(0, 20, 0);
+  camera.position.set(0, 220, 400);
+  camera.lookAt(0, 60, 0);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
@@ -167,14 +244,14 @@ function setupLighting() {
   // Main spotlight on vinyl
   const vinylSpot = new THREE.SpotLight(0xfff8f0, 1.8, 500, Math.PI / 6, 0.7, 1.5);
   vinylSpot.position.set(80, 220, 160);
-  vinylSpot.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  vinylSpot.target.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
   scene.add(vinylSpot);
   scene.add(vinylSpot.target);
 
   // Secondary accent spotlight
   const accentSpot = new THREE.SpotLight(0xffe0c0, 0.8, 400, Math.PI / 7, 0.8, 1.8);
   accentSpot.position.set(-100, 180, 140);
-  accentSpot.target.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  accentSpot.target.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
   scene.add(accentSpot);
   scene.add(accentSpot.target);
 
@@ -276,11 +353,9 @@ function createVinyl() {
   const radius = 48;
   const geometry = new THREE.CylinderGeometry(radius, radius, 1.5, 64);
 
-  const texture = createVinylTexture(track);
   const normalMap = createVinylNormalMap();
 
   const material = new THREE.MeshPhysicalMaterial({
-    map: texture,
     normalMap: normalMap,
     normalScale: new THREE.Vector2(0.5, 0.5),
     color: 0xaaaaaa,
@@ -294,7 +369,178 @@ function createVinyl() {
 
   vinyl = new THREE.Mesh(geometry, material);
   vinyl.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
+  vinyl.rotation.x = 1.2; // Tilted towards camera to show label
   compositionGroup.add(vinyl);
+
+  // Load texture with cover image
+  createVinylTextureWithCover(track).then(texture => {
+    vinyl.material.map = texture;
+    vinyl.material.needsUpdate = true;
+  });
+}
+
+function createVinylTextureWithCover(track) {
+  return new Promise((resolve) => {
+    const size = 2048;
+    const cvs = document.createElement('canvas');
+    cvs.width = size;
+    cvs.height = size;
+    const ctx = cvs.getContext('2d');
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = size / 2 - 8;
+    const labelRadius = 280;
+
+    // Load cover image first
+    const coverImg = new Image();
+    coverImg.crossOrigin = 'anonymous';
+
+    const drawVinyl = () => {
+      // Base
+      const baseGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      baseGradient.addColorStop(0, '#c5c5c8');
+      baseGradient.addColorStop(0.4, '#b0b0b3');
+      baseGradient.addColorStop(0.7, '#a0a0a3');
+      baseGradient.addColorStop(1, '#909093');
+      ctx.fillStyle = baseGradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#707075';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let r = radius - 25; r > labelRadius + 15; r -= 1.8) {
+        ctx.strokeStyle = 'rgba(70, 70, 75, 0.6)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      const trackRings = [radius - 60, radius - 150, radius - 240, radius - 330, radius - 420];
+      trackRings.forEach(r => {
+        if (r > labelRadius + 20) {
+          ctx.strokeStyle = '#454550';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(200, 200, 205, 0.5)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+
+      ctx.strokeStyle = '#505055';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 15, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#505055';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, labelRadius + 12, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let r = radius - 40; r > labelRadius + 30; r -= 8) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const shineGradient = ctx.createLinearGradient(0, 0, size, size);
+      shineGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      shineGradient.addColorStop(0.35, 'rgba(255, 255, 255, 0.15)');
+      shineGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
+      shineGradient.addColorStop(0.65, 'rgba(255, 255, 255, 0.1)');
+      shineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = shineGradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+      ctx.arc(cx, cy, labelRadius + 5, 0, Math.PI * 2, true);
+      ctx.fill();
+      ctx.restore();
+
+      // Label with cover image
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, labelRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      if (coverImg.complete && coverImg.naturalWidth > 0) {
+        // Draw full cover image to fit within the circle
+        const imgSize = Math.max(coverImg.width, coverImg.height);
+        const scale = (labelRadius * 2) / imgSize;
+        const drawW = coverImg.width * scale;
+        const drawH = coverImg.height * scale;
+        ctx.drawImage(coverImg, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      } else {
+        // Fallback gradient
+        const labelGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, labelRadius);
+        labelGradient.addColorStop(0, '#e8d4b0');
+        labelGradient.addColorStop(0.3, track.labelColor);
+        labelGradient.addColorStop(0.7, '#b8944a');
+        labelGradient.addColorStop(1, '#a07830');
+        ctx.fillStyle = labelGradient;
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Subtle overlay for vinyl look
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, labelRadius, 0, Math.PI * 2);
+      ctx.clip();
+      const overlayGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, labelRadius);
+      overlayGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      overlayGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+      overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+      ctx.fillStyle = overlayGradient;
+      ctx.fill();
+      ctx.restore();
+
+      // Center hole
+      const holeGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
+      holeGradient.addColorStop(0, '#1a1a1a');
+      holeGradient.addColorStop(0.5, '#252525');
+      holeGradient.addColorStop(0.8, '#3a3a3a');
+      holeGradient.addColorStop(1, '#505050');
+      ctx.fillStyle = holeGradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(150, 150, 155, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 26, Math.PI * 0.7, Math.PI * 1.7);
+      ctx.stroke();
+
+      const texture = new THREE.CanvasTexture(cvs);
+      texture.anisotropy = 16;
+      resolve(texture);
+    };
+
+    if (track.cover) {
+      coverImg.onload = drawVinyl;
+      coverImg.onerror = drawVinyl;
+      coverImg.src = track.cover;
+    } else {
+      drawVinyl();
+    }
+  });
 }
 
 function createVinylTexture(track) {
@@ -718,16 +964,25 @@ function initAurora() {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, vsSource);
   gl.compileShader(vs);
+  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+    console.error('Vertex shader error:', gl.getShaderInfoLog(vs));
+  }
 
   const fs = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(fs, fsSource);
   gl.compileShader(fs);
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    console.error('Fragment shader error:', gl.getShaderInfoLog(fs));
+  }
 
   // Create program
   auroraProgram = gl.createProgram();
   gl.attachShader(auroraProgram, vs);
   gl.attachShader(auroraProgram, fs);
   gl.linkProgram(auroraProgram);
+  if (!gl.getProgramParameter(auroraProgram, gl.LINK_STATUS)) {
+    console.error('Program link error:', gl.getProgramInfoLog(auroraProgram));
+  }
   gl.useProgram(auroraProgram);
 
   // Set up geometry (full-screen quad)
@@ -846,7 +1101,7 @@ function updateVizBars() {
   vizBarsCtx.clearRect(0, 0, w, h);
 
   const cx = w / 2;
-  const cy = h * 0.55;
+  const cy = h * 0.65;
 
   analyser.getByteFrequencyData(dataArray);
 
@@ -962,6 +1217,42 @@ function updateTonearmPosition(songProgress) {
   tonearm.position.z = tonearm.userData.startPosition.z + posZ;
 }
 
+function animateVinyl(playing) {
+  if (!vinyl) return;
+  vinylAnimating = true;
+
+  const duration = 1000;
+  const start = performance.now();
+  const startX = vinyl.position.x;
+  const startY = vinyl.position.y;
+  const startZ = vinyl.position.z;
+  const startRotX = vinyl.rotation.x;
+
+  const targetX = playing ? vinylOnPosition.x : vinylOffPosition.x;
+  const targetY = playing ? vinylOnPosition.y : vinylOffPosition.y;
+  const targetZ = playing ? vinylOnPosition.z : vinylOffPosition.z;
+  const targetRotX = playing ? 0 : 1.2; // Tilted towards camera when off, flat when on
+
+  function tick() {
+    const elapsed = performance.now() - start;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    vinyl.position.x = startX + (targetX - startX) * eased;
+    vinyl.position.y = startY + (targetY - startY) * eased;
+    vinyl.position.z = startZ + (targetZ - startZ) * eased;
+    vinyl.rotation.x = startRotX + (targetRotX - startRotX) * eased;
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      vinylAnimating = false;
+    }
+  }
+  tick();
+}
+
 function animateTonearm(playing) {
   if (!tonearm) return;
   tonearmAnimating = true;
@@ -1006,12 +1297,16 @@ function togglePlay() {
     audio.pause();
     document.body.classList.remove('playing');
     animateTonearm(false);
+    // Vinyl slides off after tonearm lifts
+    setTimeout(() => animateVinyl(false), 400);
     stopStoryReveal();
   } else {
     isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
-    animateTonearm(true);
+    // Vinyl slides on first, then tonearm drops
+    animateVinyl(true);
+    setTimeout(() => animateTonearm(true), 600);
     updateSoundReactive();
     updateVizBars();
     startStoryReveal();
@@ -1051,9 +1346,20 @@ function loadTrack(index) {
     albumAtmosphere.style.backgroundImage = `url(${track.cover})`;
   }
 
+  // Update now playing button
+  if (nowPlayingCover) {
+    nowPlayingCover.style.backgroundImage = track.cover ? `url(${track.cover})` : '';
+    nowPlayingCover.style.backgroundColor = track.labelColor;
+  }
+  if (nowPlayingTitle) {
+    nowPlayingTitle.textContent = track.title.replace(/<[^>]*>/g, '');
+  }
+
   if (vinyl) {
-    vinyl.material.map = createVinylTexture(track);
-    vinyl.material.needsUpdate = true;
+    createVinylTextureWithCover(track).then(texture => {
+      vinyl.material.map = texture;
+      vinyl.material.needsUpdate = true;
+    });
   }
 }
 
@@ -1101,6 +1407,82 @@ function formatTime(s) {
 }
 
 // ============================================
+// SONG MENU
+// ============================================
+let menuOpen = false;
+
+function openMenu() {
+  menuOpen = true;
+  menuOverlay.classList.add('open');
+  songMenu.classList.add('open');
+  populateMenu();
+}
+
+function closeMenu() {
+  menuOpen = false;
+  menuOverlay.classList.remove('open');
+  songMenu.classList.remove('open');
+}
+
+function toggleMenu() {
+  if (menuOpen) {
+    closeMenu();
+  } else {
+    openMenu();
+  }
+}
+
+function populateMenu() {
+  menuList.innerHTML = '';
+
+  tracks.forEach((track, index) => {
+    const item = document.createElement('div');
+    item.className = `song-item${index === currentTrack ? ' active' : ''}`;
+
+    // Create cover with fallback color gradient
+    const coverStyle = track.cover
+      ? `background-image: url('${track.cover}'); background-color: ${track.labelColor}`
+      : `background: linear-gradient(135deg, ${track.labelColor} 0%, #1a1a1a 100%)`;
+
+    item.innerHTML = `
+      <div class="song-cover" style="${coverStyle}"></div>
+      <div class="song-info">
+        <div class="song-title">${track.title.replace(/<[^>]*>/g, '')}</div>
+        <div class="song-artist">${track.artist}</div>
+      </div>
+      <div class="song-playing">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </div>
+    `;
+
+    item.addEventListener('click', () => {
+      selectTrack(index);
+    });
+
+    menuList.appendChild(item);
+  });
+}
+
+function selectTrack(index) {
+  if (index === currentTrack) {
+    closeMenu();
+    return;
+  }
+
+  if (isPlaying) togglePlay();
+  currentTrack = index;
+  loadTrack(currentTrack);
+  closeMenu();
+}
+
+// Menu event listeners
+menuBtn.addEventListener('click', toggleMenu);
+menuOverlay.addEventListener('click', closeMenu);
+menuClose.addEventListener('click', closeMenu);
+
+// ============================================
 // EVENTS
 // ============================================
 canvas.addEventListener('click', togglePlay);
@@ -1108,6 +1490,15 @@ prevBtn.addEventListener('click', prevTrack);
 nextBtn.addEventListener('click', nextTrack);
 
 document.addEventListener('keydown', (e) => {
+  // Close menu on Escape
+  if (e.code === 'Escape' && menuOpen) {
+    closeMenu();
+    return;
+  }
+
+  // Don't process other keys when menu is open
+  if (menuOpen) return;
+
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   if (e.code === 'ArrowRight') nextTrack();
   if (e.code === 'ArrowLeft') prevTrack();
