@@ -13,6 +13,10 @@
   <!-- Aurora background - full page -->
   <canvas id="aurora-canvas"></canvas>
 
+  <!-- ASCII background -->
+  <canvas id="ascii-canvas"></canvas>
+  <video id="ascii-source" style="display:none" muted loop playsinline></video>
+
   <!-- Grain overlay -->
   <div class="grain"></div>
 
@@ -106,9 +110,11 @@
     <footer class="player-footer">
       <!-- Progress bar -->
       <div class="player-controls">
-        <div class="progress-bar" id="progress-bar">
-          <div class="progress-fill" id="progress-fill"></div>
-          <div class="progress-tooltip" id="progress-tooltip">0:00</div>
+        <div class="progress-wrapper">
+          <div class="progress-bar" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-tooltip" id="progress-tooltip">0:00</div>
+          </div>
         </div>
         <div class="time-row">
           <span class="time" id="time-current">0:00</span>
@@ -167,7 +173,7 @@
     <canvas id="viz-canvas"></canvas>
   </div>
 
-  <audio id="audio" crossorigin="anonymous"></audio>
+  <audio id="audio" preload="auto"></audio>
 
   <script type="importmap">
   {

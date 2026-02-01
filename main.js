@@ -6,55 +6,95 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ============================================
 const tracks = [
   {
-    title: 'Money <em>Trees</em>',
-    titleWords: ['Money', 'Trees'],
+    title: 'Not Like <em>Us</em>',
+    titleWords: ['Not', 'Like Us'],
     artist: 'Kendrick Lamar',
-    album: 'good kid, m.A.A.d city',
-    producer: 'DJ Dahi',
-    year: '2012',
+    album: 'GNX',
+    producer: 'Mustard',
+    year: '2024',
     catalog: 'KL-001',
     number: '01',
-    src: 'money-trees.mp3',
-    labelColor: '#c4a35a',
-    accentColor: '#8bc34a',
-    quote: '"it go Halle Berry or hallelujah"',
-    location: 'TDE Studios, Carson, CA',
-    sample: '"Silver Soul" by Beach House',
-    cover: 'cover.jpg'
+    src: 'not-like-us.mp3',
+    labelColor: '#d32f2f',
+    accentColor: '#ff5722',
+    quote: '"They not like us"',
+    location: 'Los Angeles, CA',
+    sample: 'Original',
+    cover: 'covers/notlikeus.jpg',
+    // Original video for ASCII shader
+    asciiBg: 'videos/not-like-us.mp4',
+    // Soul parameters - aggressive, triumphant
+    soul: {
+      colorA: [0.83, 0.18, 0.18],    // Red
+      colorB: [1.0, 0.34, 0.13],     // Orange fire
+      noiseScale: 1.5,
+      noiseSpeed: 0.25,
+      baseDisplacement: 0.4,
+      bassReactivity: 1.0,
+      highReactivity: 0.5,
+      fresnelPower: 2.0,
+      opacity: 0.9
+    }
   },
   {
-    title: '<em>Nights</em>',
-    titleWords: ['Nights'],
-    artist: 'Frank Ocean',
-    album: 'Blonde',
-    producer: 'Frank Ocean',
-    year: '2016',
-    catalog: 'FO-002',
+    title: 'All The <em>Stars</em>',
+    titleWords: ['All', 'The', 'Stars'],
+    artist: 'Kendrick Lamar & SZA',
+    album: 'Black Panther',
+    producer: 'Sounwave, Top Dawg',
+    year: '2018',
+    catalog: 'KL-002',
     number: '02',
-    src: 'nights.mp3',
-    labelColor: '#4a7c59',
-    accentColor: '#4db6ac',
-    quote: '"Every night fucks every day up"',
-    location: 'Westlake Recording Studios',
-    sample: 'Original Composition',
-    cover: 'covers/blonde.jpg'
+    src: 'all-the-stars.mp3',
+    labelColor: '#c9a227',
+    accentColor: '#ffd54f',
+    quote: '"This may be the night that my dreams might let me know"',
+    location: 'TDE Studios, Los Angeles',
+    sample: 'Original',
+    cover: 'covers/blackpanther.jpg',
+    asciiBg: 'videos/all-the-stars.mp4',
+    // Soul parameters - cosmic, golden, triumphant
+    soul: {
+      colorA: [0.79, 0.64, 0.15],    // Gold
+      colorB: [1.0, 0.84, 0.31],     // Bright gold
+      noiseScale: 1.4,
+      noiseSpeed: 0.18,
+      baseDisplacement: 0.35,
+      bassReactivity: 0.8,
+      highReactivity: 0.6,
+      fresnelPower: 2.2,
+      opacity: 0.85
+    }
   },
   {
-    title: '<em>Runaway</em>',
-    titleWords: ['Runaway'],
-    artist: 'Kanye West',
-    album: 'My Beautiful Dark Twisted Fantasy',
-    producer: 'Kanye West',
-    year: '2010',
-    catalog: 'KW-006',
-    number: '06',
-    src: 'runaway.mp3',
-    labelColor: '#e84141',
-    accentColor: '#ef5350',
-    quote: '"Let\'s have a toast for the douchebags"',
-    location: 'Honolulu, Hawaii',
-    sample: '"Expo 83" by Backyard Heavies',
-    cover: 'covers/mbdtf.jpg'
+    title: '<em>Juicy</em>',
+    titleWords: ['Juicy'],
+    artist: 'The Notorious B.I.G.',
+    album: 'Ready to Die',
+    producer: 'Poke & Tone, Pete Rock',
+    year: '1994',
+    catalog: 'BIG-003',
+    number: '03',
+    src: 'juicy.mp3',
+    labelColor: '#8e24aa',
+    accentColor: '#ab47bc',
+    quote: '"It was all a dream"',
+    location: 'The Hit Factory, NYC',
+    sample: '"Juicy Fruit" by Mtume',
+    cover: 'covers/readytodie.jpg',
+    asciiBg: 'videos/juicy.mp4',
+    // Soul parameters - celebratory, nostalgic, triumphant
+    soul: {
+      colorA: [0.56, 0.14, 0.67],    // Purple
+      colorB: [0.67, 0.28, 0.74],    // Lighter purple
+      noiseScale: 1.3,
+      noiseSpeed: 0.15,
+      baseDisplacement: 0.3,
+      bassReactivity: 0.9,
+      highReactivity: 0.4,
+      fresnelPower: 2.5,
+      opacity: 0.85
+    }
   },
   {
     title: 'Kick in the <em>Door</em>',
@@ -71,7 +111,19 @@ const tracks = [
     quote: '"Your reign on the top was short like leprechauns"',
     location: 'D&D Studios, New York',
     sample: '"Kick in the Door" by Screamin\' Jay Hawkins',
-    cover: 'covers/lifeafterdeath.jpg'
+    cover: 'covers/lifeafterdeath.jpg',
+    // Soul parameters - raw, aggressive, 90s boom bap
+    soul: {
+      colorA: [0.1, 0.1, 0.1],       // Near black
+      colorB: [1.0, 0.84, 0.31],     // Gold accent
+      noiseScale: 2.5,
+      noiseSpeed: 0.25,
+      baseDisplacement: 0.4,
+      bassReactivity: 1.2,
+      highReactivity: 0.4,
+      fresnelPower: 2.0,
+      opacity: 0.95
+    }
   },
   {
     title: '<em>HUMBLE.</em>',
@@ -88,7 +140,21 @@ const tracks = [
     quote: '"Sit down, be humble"',
     location: 'Top Dawg Studios, Carson',
     sample: 'Original Composition',
-    cover: 'covers/damn.jpg'
+    cover: 'covers/damn.jpg',
+    // Original video for ASCII shader
+    asciiBg: 'videos/humble.mp4',
+    // Soul parameters - aggressive, hard-hitting, sharp
+    soul: {
+      colorA: [0.77, 0.12, 0.12],    // Deep red
+      colorB: [1.0, 0.09, 0.27],     // Hot red
+      noiseScale: 3.0,
+      noiseSpeed: 0.3,
+      baseDisplacement: 0.5,
+      bassReactivity: 1.5,
+      highReactivity: 0.7,
+      fresnelPower: 1.8,
+      opacity: 1.0
+    }
   },
   {
     title: 'The Next <em>Episode</em>',
@@ -105,7 +171,19 @@ const tracks = [
     quote: '"Smoke weed everyday"',
     location: 'Record One, Los Angeles',
     sample: '"The Edge" by David McCallum',
-    cover: 'covers/2001.jpg'
+    cover: 'covers/2001.jpg',
+    // Soul parameters - G-funk, smooth, hazy green smoke
+    soul: {
+      colorA: [0.18, 0.80, 0.25],    // Weed green
+      colorB: [0.40, 0.73, 0.42],    // Lighter green
+      noiseScale: 1.5,
+      noiseSpeed: 0.12,
+      baseDisplacement: 0.35,
+      bassReactivity: 0.9,
+      highReactivity: 0.3,
+      fresnelPower: 2.2,
+      opacity: 0.75
+    }
   },
   {
     title: 'Blinding <em>Lights</em>',
@@ -122,7 +200,21 @@ const tracks = [
     quote: '"I\'m blinded by the lights"',
     location: 'Conway Recording Studios, LA',
     sample: 'Original Composition',
-    cover: 'covers/afterhours.jpg'
+    cover: 'covers/afterhours.jpg',
+    // Original video for ASCII shader
+    asciiBg: 'videos/blinding-lights.mp4',
+    // Soul parameters - 80s synth, neon, pulsing
+    soul: {
+      colorA: [0.91, 0.04, 0.04],    // Neon red
+      colorB: [1.0, 0.2, 0.4],       // Hot pink
+      noiseScale: 2.0,
+      noiseSpeed: 0.35,
+      baseDisplacement: 0.4,
+      bassReactivity: 1.1,
+      highReactivity: 0.8,
+      fresnelPower: 2.5,
+      opacity: 0.95
+    }
   },
   {
     title: 'SICKO <em>MODE</em>',
@@ -139,7 +231,20 @@ const tracks = [
     quote: '"Sun is down, freezin\' cold"',
     location: 'Record Plant, Los Angeles',
     sample: '"Like a Light" by Big Hawk',
-    cover: 'covers/astroworld.jpg'
+    cover: 'covers/astroworld.jpg',
+    asciiBg: 'videos/sicko-mode.mp4',
+    // Soul parameters - psychedelic, shifting, multiple modes
+    soul: {
+      colorA: [0.83, 0.66, 0.29],    // Astroworld gold
+      colorB: [1.0, 0.72, 0.30],     // Warm orange
+      noiseScale: 2.8,
+      noiseSpeed: 0.28,
+      baseDisplacement: 0.45,
+      bassReactivity: 1.3,
+      highReactivity: 0.6,
+      fresnelPower: 2.0,
+      opacity: 0.9
+    }
   },
   {
     title: 'Empire State of <em>Mind</em>',
@@ -156,7 +261,19 @@ const tracks = [
     quote: '"Concrete jungle where dreams are made of"',
     location: 'Roc the Mic Studios, New York',
     sample: '"Love on a Two-Way Street" by The Moments',
-    cover: 'covers/blueprint3.jpg'
+    cover: 'covers/blueprint3.jpg',
+    // Soul parameters - anthemic, NYC lights, triumphant
+    soul: {
+      colorA: [0.26, 0.65, 0.96],    // NYC blue
+      colorB: [0.77, 0.12, 0.23],    // Red accent
+      noiseScale: 1.6,
+      noiseSpeed: 0.18,
+      baseDisplacement: 0.35,
+      bassReactivity: 0.9,
+      highReactivity: 0.5,
+      fresnelPower: 2.8,
+      opacity: 0.9
+    }
   },
   {
     title: 'Praise the <em>Lord</em>',
@@ -173,7 +290,19 @@ const tracks = [
     quote: '"I might take your girl and kidnap her"',
     location: 'Shangri-La, Malibu',
     sample: 'Original Composition',
-    cover: 'covers/testing.jpg'
+    cover: 'covers/testing.jpg',
+    // Soul parameters - UK grime meets US swag, bouncy
+    soul: {
+      colorA: [0.90, 0.77, 0.17],    // Gold yellow
+      colorB: [1.0, 0.93, 0.35],     // Bright yellow
+      noiseScale: 2.2,
+      noiseSpeed: 0.32,
+      baseDisplacement: 0.42,
+      bassReactivity: 1.2,
+      highReactivity: 0.65,
+      fresnelPower: 2.0,
+      opacity: 0.88
+    }
   },
   {
     title: '<em>Congratulations</em>',
@@ -190,7 +319,19 @@ const tracks = [
     quote: '"They said I wouldn\'t be nothin\'"',
     location: 'Republic Studios, Los Angeles',
     sample: 'Original Composition',
-    cover: 'covers/stoney.jpg'
+    cover: 'covers/stoney.jpg',
+    // Soul parameters - celebratory, warm, victorious
+    soul: {
+      colorA: [0.55, 0.45, 0.33],    // Warm brown
+      colorB: [0.74, 0.67, 0.64],    // Stone beige
+      noiseScale: 1.4,
+      noiseSpeed: 0.15,
+      baseDisplacement: 0.3,
+      bassReactivity: 0.85,
+      highReactivity: 0.4,
+      fresnelPower: 2.5,
+      opacity: 0.82
+    }
   },
   {
     title: 'Bad and <em>Boujee</em>',
@@ -207,7 +348,19 @@ const tracks = [
     quote: '"Raindrop, drop top"',
     location: 'Triangle Sound Studios, Atlanta',
     sample: 'Original Composition',
-    cover: 'covers/culture2.jpg'
+    cover: 'covers/culture2.jpg',
+    // Soul parameters - trap, hard, Atlanta drip
+    soul: {
+      colorA: [0.77, 0.12, 0.23],    // Deep red
+      colorB: [0.94, 0.33, 0.31],    // Bright red
+      noiseScale: 2.6,
+      noiseSpeed: 0.35,
+      baseDisplacement: 0.48,
+      bassReactivity: 1.4,
+      highReactivity: 0.7,
+      fresnelPower: 1.8,
+      opacity: 0.95
+    }
   }
 ];
 
@@ -249,6 +402,10 @@ const auroraCanvas = document.getElementById('aurora-canvas');
 const playPill = document.getElementById('play-pill');
 const vizBars = document.getElementById('viz-bars');
 const vizBarsCtx = vizBars ? vizBars.getContext('2d') : null;
+
+// ASCII shader elements
+const asciiCanvas = document.getElementById('ascii-canvas');
+const asciiSource = document.getElementById('ascii-source');
 
 // Menu elements
 const menuBtn = document.getElementById('menu-btn');
@@ -1214,6 +1371,583 @@ function updateAurora() {
 }
 
 // ============================================
+// SONG SOUL - Audio-reactive form above vinyl
+// ============================================
+let songSoul, songSoulMaterial;
+let soulTime = 0;
+
+// Simplex noise for shader
+const simplexNoiseGLSL = `
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+  float snoise(vec3 v) {
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i  = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+      i.z + vec4(0.0, i1.z, i2.z, 1.0))
+      + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+      + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ *ns.x + ns.yyyy;
+    vec4 y = y_ *ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+    p0 *= norm.x;
+    p1 *= norm.y;
+    p2 *= norm.z;
+    p3 *= norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+  }
+`;
+
+function createSongSoul() {
+  const track = tracks[currentTrack];
+  const soul = track.soul || {
+    colorA: [0.77, 0.64, 0.35],
+    colorB: [0.55, 0.76, 0.29],
+    noiseScale: 1.5,
+    noiseSpeed: 0.2,
+    baseDisplacement: 0.3,
+    bassReactivity: 0.8,
+    highReactivity: 0.4,
+    fresnelPower: 2.5,
+    opacity: 0.85
+  };
+
+  // Icosahedron with subdivisions for smooth morphing
+  const geometry = new THREE.IcosahedronGeometry(25, 4);
+
+  // Custom shader material
+  songSoulMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      u_time: { value: 0 },
+      u_bass: { value: 0 },
+      u_high: { value: 0 },
+      u_noiseScale: { value: soul.noiseScale },
+      u_noiseSpeed: { value: soul.noiseSpeed },
+      u_baseDisplacement: { value: soul.baseDisplacement },
+      u_bassReactivity: { value: soul.bassReactivity },
+      u_highReactivity: { value: soul.highReactivity },
+      u_colorA: { value: new THREE.Vector3(...soul.colorA) },
+      u_colorB: { value: new THREE.Vector3(...soul.colorB) },
+      u_fresnelPower: { value: soul.fresnelPower },
+      u_opacity: { value: soul.opacity }
+    },
+    vertexShader: `
+      ${simplexNoiseGLSL}
+
+      uniform float u_time;
+      uniform float u_bass;
+      uniform float u_high;
+      uniform float u_noiseScale;
+      uniform float u_noiseSpeed;
+      uniform float u_baseDisplacement;
+      uniform float u_bassReactivity;
+      uniform float u_highReactivity;
+
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      varying float vDisplacement;
+
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+
+        // Calculate displacement based on noise and audio
+        vec3 noisePos = position * u_noiseScale + u_time * u_noiseSpeed;
+        float noise = snoise(noisePos);
+
+        // Layer multiple noise octaves for more organic feel
+        float noise2 = snoise(noisePos * 2.0 + 100.0) * 0.5;
+        float noise3 = snoise(noisePos * 4.0 + 200.0) * 0.25;
+        float combinedNoise = noise + noise2 + noise3;
+
+        // Audio-reactive displacement
+        float bassInfluence = u_bass * u_bassReactivity;
+        float highInfluence = u_high * u_highReactivity;
+
+        // Base displacement + bass breathing + high spikiness
+        float displacement = u_baseDisplacement * (1.0 + bassInfluence * 0.5);
+        displacement += combinedNoise * (displacement + highInfluence * 0.8);
+
+        vDisplacement = displacement;
+
+        // Displace along normal
+        vec3 newPosition = position + normal * displacement * 10.0;
+
+        // Add subtle scale breathing with bass
+        newPosition *= 1.0 + bassInfluence * 0.15;
+
+        vPosition = newPosition;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 u_colorA;
+      uniform vec3 u_colorB;
+      uniform float u_fresnelPower;
+      uniform float u_opacity;
+      uniform float u_bass;
+
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      varying float vDisplacement;
+
+      void main() {
+        // Fresnel effect for edge glow
+        vec3 viewDirection = normalize(cameraPosition - vPosition);
+        float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), u_fresnelPower);
+
+        // Mix colors based on displacement and fresnel
+        vec3 color = mix(u_colorA, u_colorB, vDisplacement * 2.0 + fresnel * 0.5);
+
+        // Add glow intensity based on fresnel and bass
+        float glow = fresnel * (1.0 + u_bass * 0.5);
+        color += u_colorB * glow * 0.6;
+
+        // Slight HDR bloom effect
+        color = color / (color + vec3(1.0)) * 1.2;
+
+        // Opacity with fresnel edge fade
+        float alpha = u_opacity * (0.6 + fresnel * 0.4);
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  songSoul = new THREE.Mesh(geometry, songSoulMaterial);
+
+  // Position above the vinyl
+  songSoul.position.set(vinylOnPosition.x, vinylOnPosition.y + 70, vinylOnPosition.z);
+
+  compositionGroup.add(songSoul);
+}
+
+function updateSongSoul() {
+  if (!songSoul || !songSoulMaterial) return;
+
+  // Advance time (slower when paused)
+  if (isPlaying) {
+    soulTime += 0.016;
+  } else {
+    soulTime += 0.004; // Subtle movement when paused
+  }
+
+  songSoulMaterial.uniforms.u_time.value = soulTime;
+
+  // Update audio reactivity
+  if (analyser && isPlaying) {
+    analyser.getByteFrequencyData(dataArray);
+
+    // Calculate bass (low frequencies)
+    let bass = 0;
+    for (let i = 0; i < 8; i++) bass += dataArray[i];
+    bass = bass / 8 / 255;
+
+    // Calculate highs
+    let high = 0;
+    for (let i = 20; i < 60; i++) high += dataArray[i];
+    high = high / 40 / 255;
+
+    // Smooth interpolation
+    const currentBass = songSoulMaterial.uniforms.u_bass.value;
+    const currentHigh = songSoulMaterial.uniforms.u_high.value;
+
+    songSoulMaterial.uniforms.u_bass.value += (bass - currentBass) * 0.15;
+    songSoulMaterial.uniforms.u_high.value += (high - currentHigh) * 0.2;
+  } else {
+    // Decay when paused
+    songSoulMaterial.uniforms.u_bass.value *= 0.95;
+    songSoulMaterial.uniforms.u_high.value *= 0.95;
+  }
+
+  // Subtle rotation
+  songSoul.rotation.y += 0.002;
+  songSoul.rotation.x = Math.sin(soulTime * 0.3) * 0.1;
+}
+
+function updateSongSoulParams() {
+  if (!songSoulMaterial) return;
+
+  const track = tracks[currentTrack];
+  const soul = track.soul;
+  if (!soul) return;
+
+  // Smoothly transition to new track's soul parameters
+  const uniforms = songSoulMaterial.uniforms;
+
+  uniforms.u_colorA.value.set(...soul.colorA);
+  uniforms.u_colorB.value.set(...soul.colorB);
+  uniforms.u_noiseScale.value = soul.noiseScale;
+  uniforms.u_noiseSpeed.value = soul.noiseSpeed;
+  uniforms.u_baseDisplacement.value = soul.baseDisplacement;
+  uniforms.u_bassReactivity.value = soul.bassReactivity;
+  uniforms.u_highReactivity.value = soul.highReactivity;
+  uniforms.u_fresnelPower.value = soul.fresnelPower;
+  uniforms.u_opacity.value = soul.opacity;
+}
+
+// ============================================
+// ASCII SHADER BACKGROUND
+// ============================================
+let asciiGl, asciiProgram, asciiTexture;
+let asciiActive = false;
+let asciiColor = [1.0, 0.09, 0.27]; // Default red
+let asciiBass = 0, asciiHigh = 0; // Audio reactivity
+
+const asciiVertexShader = `
+  attribute vec2 a_position;
+  varying vec2 v_uv;
+  void main() {
+    v_uv = a_position * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+`;
+
+const asciiFragmentShader = `
+  precision highp float;
+  varying vec2 v_uv;
+  uniform sampler2D u_texture;
+  uniform vec2 u_resolution;
+  uniform vec2 u_videoSize;
+  uniform vec3 u_color;
+  uniform float u_cellSize;
+  uniform float u_time;
+  uniform float u_bass;
+  uniform float u_high;
+  uniform float u_playing;
+
+  // Character bitmaps encoded as floats (5x7 grid = 35 bits)
+  // Characters: " .:-=+*#%@"
+  float getChar(int index, vec2 pos) {
+    // Clamp position to 5x7 grid
+    if (pos.x < 0.0 || pos.x >= 5.0 || pos.y < 0.0 || pos.y >= 7.0) return 0.0;
+
+    int x = int(pos.x);
+    int y = int(pos.y);
+    int bit = y * 5 + x;
+
+    // Character patterns (simplified 5x7)
+    // Space
+    if (index == 0) return 0.0;
+
+    // . (dot)
+    if (index == 1) {
+      if (y == 6 && x == 2) return 1.0;
+      return 0.0;
+    }
+
+    // : (colon)
+    if (index == 2) {
+      if (x == 2 && (y == 2 || y == 5)) return 1.0;
+      return 0.0;
+    }
+
+    // - (dash)
+    if (index == 3) {
+      if (y == 3 && x >= 1 && x <= 3) return 1.0;
+      return 0.0;
+    }
+
+    // = (equals)
+    if (index == 4) {
+      if ((y == 2 || y == 4) && x >= 1 && x <= 3) return 1.0;
+      return 0.0;
+    }
+
+    // + (plus)
+    if (index == 5) {
+      if ((y == 3 && x >= 1 && x <= 3) || (x == 2 && y >= 1 && y <= 5)) return 1.0;
+      return 0.0;
+    }
+
+    // * (asterisk)
+    if (index == 6) {
+      if (x == 2 && y >= 1 && y <= 5) return 1.0;
+      if (y == 3 && x >= 0 && x <= 4) return 1.0;
+      if ((x == 1 || x == 3) && (y == 2 || y == 4)) return 1.0;
+      return 0.0;
+    }
+
+    // # (hash)
+    if (index == 7) {
+      if ((x == 1 || x == 3) && y >= 0 && y <= 6) return 1.0;
+      if ((y == 2 || y == 4) && x >= 0 && x <= 4) return 1.0;
+      return 0.0;
+    }
+
+    // % (percent)
+    if (index == 8) {
+      if ((x == 0 || x == 1) && (y == 0 || y == 1)) return 1.0;
+      if ((x == 3 || x == 4) && (y == 5 || y == 6)) return 1.0;
+      if (x == y - 1 || x == y || x == y + 1) return 1.0;
+      return 0.0;
+    }
+
+    // @ (at)
+    if (index == 9) {
+      if (y == 0 && x >= 1 && x <= 3) return 1.0;
+      if (y == 6 && x >= 1 && x <= 4) return 1.0;
+      if (x == 0 && y >= 1 && y <= 5) return 1.0;
+      if (x == 4 && y >= 1 && y <= 4) return 1.0;
+      if (y == 2 && x >= 2 && x <= 3) return 1.0;
+      if (y == 4 && x >= 2 && x <= 4) return 1.0;
+      if (x == 2 && y == 3) return 1.0;
+      if (x == 3 && y == 3) return 1.0;
+      return 0.0;
+    }
+
+    return 0.0;
+  }
+
+  void main() {
+    vec2 cellSize = vec2(u_cellSize * 0.6, u_cellSize); // Aspect ratio for chars
+    vec2 cell = floor(gl_FragCoord.xy / cellSize);
+    vec2 cellUV = cell * cellSize / u_resolution;
+
+    // Cover-style UV calculation with extra zoom to crop black borders
+    float screenAspect = u_resolution.x / u_resolution.y;
+    float videoAspect = u_videoSize.x / u_videoSize.y;
+    float zoom = 1.4; // Zoom in to crop black borders from video
+
+    vec2 coverUV = cellUV;
+    if (screenAspect > videoAspect) {
+      // Screen is wider - scale by width, crop top/bottom
+      float scale = screenAspect / videoAspect * zoom;
+      coverUV.y = (cellUV.y - 0.5) / scale + 0.5;
+      coverUV.x = (cellUV.x - 0.5) / zoom + 0.5;
+    } else {
+      // Screen is taller - scale by height, crop sides
+      float scale = videoAspect / screenAspect * zoom;
+      coverUV.x = (cellUV.x - 0.5) / scale + 0.5;
+      coverUV.y = (cellUV.y - 0.5) / zoom + 0.5;
+    }
+
+    // Sample center of cell (flip Y for correct orientation)
+    vec2 flippedUV = vec2(coverUV.x, 1.0 - coverUV.y);
+    vec4 texColor = texture2D(u_texture, flippedUV);
+
+    // Calculate brightness
+    float brightness = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+
+    // Map brightness to character index (0-9)
+    int charIndex = int(brightness * 9.99);
+
+    // Position within character grid
+    vec2 posInCell = mod(gl_FragCoord.xy, cellSize);
+    vec2 charPos = posInCell / cellSize * vec2(5.0, 7.0);
+
+    // Get character pixel
+    float charPixel = getChar(charIndex, floor(charPos));
+
+    // Audio-reactive intensity
+    float bassBoost = 1.0 + u_bass * 0.8;
+    float highBoost = 1.0 + u_high * 0.3;
+
+    // Compress bright areas (clouds) - keeps darks visible, tames highlights
+    float compressedBrightness = pow(brightness, 1.5); // Darkens bright areas more than dark areas
+
+    // Clamp maximum brightness to prevent blown-out clouds
+    float maxBrightness = mix(0.35, 0.5, u_playing); // Lower max when paused
+    compressedBrightness = min(compressedBrightness, maxBrightness);
+
+    // Output color - pulses with bass
+    vec3 bgColor = vec3(0.0);
+    vec3 finalColor = mix(bgColor, u_color, charPixel * compressedBrightness * 0.9 * bassBoost);
+
+    // Add subtle glow that reacts to audio
+    finalColor += u_color * compressedBrightness * 0.1 * highBoost;
+
+    // Opacity
+    float alpha = charPixel > 0.5 ? 0.9 : compressedBrightness * 0.25;
+    alpha *= (0.8 + u_bass * 0.2);
+
+    gl_FragColor = vec4(finalColor, alpha);
+  }
+`;
+
+function initAsciiShader() {
+  if (!asciiCanvas) return;
+
+  asciiGl = asciiCanvas.getContext('webgl', { alpha: true, premultipliedAlpha: false });
+  if (!asciiGl) return;
+
+  const gl = asciiGl;
+
+  // Compile shaders
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, asciiVertexShader);
+  gl.compileShader(vs);
+
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, asciiFragmentShader);
+  gl.compileShader(fs);
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    console.error('ASCII fragment shader error:', gl.getShaderInfoLog(fs));
+  }
+
+  asciiProgram = gl.createProgram();
+  gl.attachShader(asciiProgram, vs);
+  gl.attachShader(asciiProgram, fs);
+  gl.linkProgram(asciiProgram);
+  gl.useProgram(asciiProgram);
+
+  // Geometry
+  const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+  const posLoc = gl.getAttribLocation(asciiProgram, 'a_position');
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  // Create texture for video
+  asciiTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, asciiTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  // Blending
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  resizeAsciiCanvas();
+  window.addEventListener('resize', resizeAsciiCanvas);
+}
+
+function resizeAsciiCanvas() {
+  if (!asciiCanvas || !asciiGl) return;
+  asciiCanvas.width = window.innerWidth;
+  asciiCanvas.height = window.innerHeight;
+  asciiGl.viewport(0, 0, asciiCanvas.width, asciiCanvas.height);
+}
+
+function updateAsciiShader() {
+  if (!asciiGl || !asciiProgram || !asciiActive) {
+    if (asciiActive) requestAnimationFrame(updateAsciiShader);
+    return;
+  }
+  if (!asciiSource || asciiSource.readyState < 2) {
+    requestAnimationFrame(updateAsciiShader);
+    return;
+  }
+
+  const gl = asciiGl;
+
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.useProgram(asciiProgram);
+
+  // Update video texture
+  gl.bindTexture(gl.TEXTURE_2D, asciiTexture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, asciiSource);
+
+  // Get audio data for reactivity
+  if (analyser && isPlaying) {
+    analyser.getByteFrequencyData(dataArray);
+    let bass = 0, high = 0;
+    for (let i = 0; i < 8; i++) bass += dataArray[i];
+    for (let i = 20; i < 60; i++) high += dataArray[i];
+    bass = bass / 8 / 255;
+    high = high / 40 / 255;
+    asciiBass += (bass - asciiBass) * 0.15;
+    asciiHigh += (high - asciiHigh) * 0.2;
+  } else {
+    asciiBass *= 0.9;
+    asciiHigh *= 0.9;
+  }
+
+  // Set uniforms
+  gl.uniform2f(gl.getUniformLocation(asciiProgram, 'u_resolution'), asciiCanvas.width, asciiCanvas.height);
+  gl.uniform2f(gl.getUniformLocation(asciiProgram, 'u_videoSize'), asciiSource.videoWidth || 1920, asciiSource.videoHeight || 1080);
+  gl.uniform3fv(gl.getUniformLocation(asciiProgram, 'u_color'), asciiColor);
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_cellSize'), 12.0); // Character size
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_time'), performance.now() / 1000);
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_bass'), asciiBass);
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_high'), asciiHigh);
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_playing'), isPlaying ? 1.0 : 0.0);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  requestAnimationFrame(updateAsciiShader);
+}
+
+function updateAsciiBg(track) {
+  if (!asciiCanvas || !asciiSource) return;
+
+  if (track.asciiBg) {
+    asciiSource.src = track.asciiBg;
+    asciiCanvas.classList.add('active');
+    asciiActive = true;
+
+    // Set color from track
+    const rgb = hexToRgb(track.accentColor || '#ff1744');
+    if (rgb) {
+      asciiColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+    }
+
+    if (isPlaying) {
+      asciiSource.play();
+      updateAsciiShader();
+    }
+  } else {
+    asciiCanvas.classList.remove('active');
+    asciiActive = false;
+    asciiSource.src = '';
+    asciiSource.pause();
+  }
+}
+
+function syncAsciiBg() {
+  if (!asciiSource || !asciiSource.src) return;
+
+  if (isPlaying && asciiActive) {
+    asciiSource.play();
+    updateAsciiShader();
+  } else {
+    asciiSource.pause();
+  }
+}
+
+// ============================================
 // ARC BARS VISUALIZER (behind vinyl)
 // ============================================
 const numBars = 20;
@@ -1516,6 +2250,7 @@ function togglePlay() {
     // Just decelerate vinyl - tonearm stays
     animateVinylSpeed(0.025, 0, 400);
     stopStoryReveal();
+    syncAsciiBg();
   } else {
     isPlaying = true;
     audio.play();
@@ -1530,6 +2265,7 @@ function togglePlay() {
     updateSoundReactive();
     updateVizBars();
     startStoryReveal();
+    syncAsciiBg();
   }
 }
 
@@ -1590,6 +2326,9 @@ function loadTrack(index) {
   if (albumAtmosphere && track.cover) {
     albumAtmosphere.style.backgroundImage = `url(${track.cover})`;
   }
+
+  // Update ASCII background if track has one
+  updateAsciiBg(track);
 
   // Update now playing button
   if (nowPlayingCover) {
@@ -1701,10 +2440,57 @@ audio.addEventListener('ended', () => {
   }
 });
 
-progressBar.addEventListener('click', (e) => {
-  const rect = progressBar.getBoundingClientRect();
-  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
-});
+function seekToPosition(clientX) {
+  const bar = document.getElementById('progress-bar');
+  if (!bar) return;
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+
+  if (!audio.duration || isNaN(audio.duration) || audio.duration <= 0) {
+    console.log('Audio duration not ready');
+    return;
+  }
+
+  const newTime = pct * audio.duration;
+
+  // Debug info
+  console.log('=== SEEK DEBUG ===');
+  console.log('Target time:', newTime);
+  console.log('Duration:', audio.duration);
+  console.log('ReadyState:', audio.readyState);
+  console.log('NetworkState:', audio.networkState);
+  console.log('Paused:', audio.paused);
+  console.log('Src:', audio.src);
+
+  // Check buffered ranges
+  console.log('Buffered ranges:');
+  for (let i = 0; i < audio.buffered.length; i++) {
+    console.log(`  Range ${i}: ${audio.buffered.start(i)} - ${audio.buffered.end(i)}`);
+  }
+
+  // Check if target is in buffered range
+  let inBuffer = false;
+  for (let i = 0; i < audio.buffered.length; i++) {
+    if (newTime >= audio.buffered.start(i) && newTime <= audio.buffered.end(i)) {
+      inBuffer = true;
+      break;
+    }
+  }
+  console.log('Target in buffer:', inBuffer);
+
+  // Try the seek
+  audio.currentTime = newTime;
+  console.log('After set, currentTime:', audio.currentTime);
+  console.log('=== END DEBUG ===');
+}
+
+// Single click handler on progress bar
+if (progressBar) {
+  progressBar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    seekToPosition(e.clientX);
+  });
+}
 
 // Progress bar tooltip
 const progressTooltip = document.getElementById('progress-tooltip');
@@ -2001,6 +2787,7 @@ document.addEventListener('keydown', (e) => {
 // ============================================
 initThree();
 initAurora();
+initAsciiShader();
 initVizBars();
 initPlayControls();
 loadTrack(0);
