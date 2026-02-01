@@ -275,8 +275,12 @@ const currentRotation = { x: 0, y: 0 };
 // Vinyl positions - on turntable vs off (initial state)
 const vinylOnPosition = { x: -18, y: 33.5, z: 46 };
 const vinylOffPosition = { x: -18, y: 120, z: 46 }; // Directly above turntable
-const vinylPosition = { ...vinylOffPosition }; // Start off turntable
+const vinylPosition = { ...vinylOnPosition }; // Start ON turntable
 let vinylAnimating = false;
+
+// Vinyl spin control
+let vinylSpinSpeed = 0; // 0 = stopped, 0.025 = normal playing speed
+let tonearmInPosition = false;
 
 function initThree() {
   scene = new THREE.Scene();
@@ -472,6 +476,8 @@ function createVinylNormalMap() {
   return texture;
 }
 
+let vinylShadow;
+
 function createVinyl() {
   const track = tracks[currentTrack];
   const radius = 48;
@@ -492,9 +498,22 @@ function createVinyl() {
   });
 
   vinyl = new THREE.Mesh(geometry, material);
-  vinyl.position.set(vinylPosition.x, vinylPosition.y, vinylPosition.z);
-  vinyl.rotation.x = 1.2; // Tilted towards camera to show label
+  vinyl.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
+  vinyl.rotation.x = 0; // Flat on platter from start
   compositionGroup.add(vinyl);
+
+  // Create shadow/glow beneath vinyl
+  const shadowGeometry = new THREE.CircleGeometry(radius * 0.9, 64);
+  const shadowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  });
+  vinylShadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+  vinylShadow.rotation.x = -Math.PI / 2;
+  vinylShadow.position.set(vinylOnPosition.x, vinylOnPosition.y - 2, vinylOnPosition.z);
+  compositionGroup.add(vinylShadow);
 
   // Load texture with cover image
   createVinylTextureWithCover(track).then(texture => {
@@ -838,17 +857,23 @@ function animate() {
     compositionGroup.rotation.z = -currentRotation.y * 0.3;
   }
 
-  if (vinyl && isPlaying) {
-    vinyl.rotation.y += 0.025;
+  if (vinyl) {
+    // Spin at current speed (controlled by play/pause)
+    vinyl.rotation.y += vinylSpinSpeed;
 
-    if (vinyl.material.sheenColor) {
-      const pulse = Math.sin(time * 2) * 0.1;
-      vinyl.material.sheen = 0.5 + pulse;
-    }
-
-    if (audio.duration && tonearm && !tonearmAnimating) {
+    // Update tonearm position when playing
+    if (isPlaying && audio.duration && tonearm && !tonearmAnimating) {
       const songProgress = audio.currentTime / audio.duration;
       updateTonearmPosition(songProgress);
+    }
+
+    // Shadow responds to vinyl height
+    if (vinylShadow) {
+      const heightDiff = vinyl.position.y - vinylOnPosition.y;
+      const shadowOpacity = Math.max(0, 0.35 - heightDiff * 0.004);
+      const shadowScale = 1 + heightDiff * 0.008;
+      vinylShadow.material.opacity = shadowOpacity;
+      vinylShadow.scale.setScalar(shadowScale);
     }
   }
 
@@ -899,44 +924,21 @@ function updateSoundReactive() {
   bassAnalyser.getByteFrequencyData(bassDataArray);
 
   // Calculate frequency bands
-  // Bass: 0-150Hz (first ~6 bins at 44100Hz sample rate with 512 FFT)
   let bassSum = 0;
   for (let i = 0; i < 8; i++) {
     bassSum += bassDataArray[i];
   }
   soundState.bass = bassSum / 8 / 255;
 
-  // High: 4000-12000Hz (bins 23-70 roughly)
   let highSum = 0;
   for (let i = 20; i < 60; i++) {
     highSum += dataArray[i];
   }
   soundState.high = highSum / 40 / 255;
 
-  // Smooth values for gradual effects
-  soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.1;
+  // Smooth values
+  soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.12;
   soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
-
-  // Detect bass hits (sudden increase)
-  const now = performance.now();
-  const bassThreshold = 0.6;
-  const highThreshold = 0.5;
-
-  if (soundState.bass > bassThreshold && now - soundState.lastBassHit > 150) {
-    soundState.lastBassHit = now;
-    // Bass hit - can trigger visual effects here
-  }
-
-  if (soundState.high > highThreshold && now - soundState.lastHighHit > 100) {
-    soundState.lastHighHit = now;
-    // High hit - can trigger visual effects here
-  }
-
-  // Update CSS custom properties for sound-reactive styles
-  const root = document.documentElement;
-  root.style.setProperty('--bass-scale', 1 + soundState.bassSmooth * 0.02);
-  root.style.setProperty('--bass-glow', soundState.bassSmooth);
-  root.style.setProperty('--breathe', 1 + soundState.bassSmooth * 0.015);
 
   // Update visualizer bars
   updateVisualizer();
@@ -1345,42 +1347,6 @@ function updateTonearmPosition(songProgress) {
   tonearm.position.z = tonearm.userData.startPosition.z + posZ;
 }
 
-function animateVinyl(playing) {
-  if (!vinyl) return;
-  vinylAnimating = true;
-
-  const duration = 1000;
-  const start = performance.now();
-  const startX = vinyl.position.x;
-  const startY = vinyl.position.y;
-  const startZ = vinyl.position.z;
-  const startRotX = vinyl.rotation.x;
-
-  const targetX = playing ? vinylOnPosition.x : vinylOffPosition.x;
-  const targetY = playing ? vinylOnPosition.y : vinylOffPosition.y;
-  const targetZ = playing ? vinylOnPosition.z : vinylOffPosition.z;
-  const targetRotX = playing ? 0 : 1.2; // Tilted towards camera when off, flat when on
-
-  function tick() {
-    const elapsed = performance.now() - start;
-    const progress = Math.min(elapsed / duration, 1);
-    // Ease out cubic
-    const eased = 1 - Math.pow(1 - progress, 3);
-
-    vinyl.position.x = startX + (targetX - startX) * eased;
-    vinyl.position.y = startY + (targetY - startY) * eased;
-    vinyl.position.z = startZ + (targetZ - startZ) * eased;
-    vinyl.rotation.x = startRotX + (targetRotX - startRotX) * eased;
-
-    if (progress < 1) {
-      requestAnimationFrame(tick);
-    } else {
-      vinylAnimating = false;
-    }
-  }
-  tick();
-}
-
 function animateTonearm(playing) {
   if (!tonearm) return;
   tonearmAnimating = true;
@@ -1415,6 +1381,77 @@ function animateTonearm(playing) {
   tick();
 }
 
+function animateVinylSpeed(from, to, duration) {
+  const start = performance.now();
+  function tick(time) {
+    const progress = Math.min((time - start) / duration, 1);
+    const eased = to > from
+      ? 1 - Math.pow(1 - progress, 2) // ease-out for speeding up
+      : progress * progress; // ease-in for slowing down
+    vinylSpinSpeed = from + (to - from) * eased;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Accelerate vinyl to peak speed
+function vinylSpeedUp(duration = 350) {
+  return new Promise(resolve => {
+    const startTime = performance.now();
+    const normalSpeed = 0.025;
+    const peakSpeed = 0.2;
+    const startSpeed = vinylSpinSpeed;
+
+    function tick(time) {
+      const progress = Math.min((time - startTime) / duration, 1);
+      // Ease-out for quick acceleration
+      const eased = 1 - Math.pow(1 - progress, 2);
+      vinylSpinSpeed = startSpeed + (peakSpeed - startSpeed) * eased;
+
+      if (progress >= 1) {
+        vinylSpinSpeed = peakSpeed;
+        resolve();
+        return;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// Decelerate vinyl back to normal/stopped
+function vinylSlowDown(duration = 400) {
+  return new Promise(resolve => {
+    const startTime = performance.now();
+    const peakSpeed = vinylSpinSpeed;
+    const targetSpeed = isPlaying ? 0.025 : 0;
+
+    function tick(time) {
+      const progress = Math.min((time - startTime) / duration, 1);
+      // Ease-out for smooth deceleration
+      const eased = 1 - Math.pow(1 - progress, 3);
+      vinylSpinSpeed = peakSpeed - (peakSpeed - targetSpeed) * eased;
+
+      if (progress >= 1) {
+        vinylSpinSpeed = targetSpeed;
+        resolve();
+        return;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// Swap vinyl texture (call during peak speed)
+function swapVinylTexture(newIndex) {
+  const track = tracks[newIndex];
+  createVinylTextureWithCover(track).then(texture => {
+    vinyl.material.map = texture;
+    vinyl.material.needsUpdate = true;
+  });
+}
+
 // ============================================
 // PLAYBACK
 // ============================================
@@ -1424,17 +1461,20 @@ function togglePlay() {
     isPlaying = false;
     audio.pause();
     document.body.classList.remove('playing');
-    animateTonearm(false);
-    // Vinyl slides off after tonearm lifts
-    setTimeout(() => animateVinyl(false), 400);
+    // Just decelerate vinyl - tonearm stays
+    animateVinylSpeed(0.025, 0, 400);
     stopStoryReveal();
   } else {
     isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
-    // Vinyl slides on first, then tonearm drops
-    animateVinyl(true);
-    setTimeout(() => animateTonearm(true), 600);
+    // Accelerate vinyl back to speed
+    animateVinylSpeed(0, 0.025, 400);
+    // Only animate tonearm if it's not already in position
+    if (!tonearmInPosition) {
+      animateTonearm(true);
+      tonearmInPosition = true;
+    }
     updateSoundReactive();
     updateVizBars();
     startStoryReveal();
@@ -1454,13 +1494,16 @@ function loadTrack(index) {
   const track = tracks[index];
   audio.src = track.src;
 
-  // Set accent color CSS custom property
+  // Set accent color CSS custom properties
   const accent = track.accentColor || track.labelColor;
   document.documentElement.style.setProperty('--track-accent', accent);
 
   // Update aurora colors based on track accent
   const rgb = hexToRgb(accent);
   if (rgb) {
+    // Set RGB for CSS animations
+    document.documentElement.style.setProperty('--track-accent-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+
     auroraColors[0] = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
     auroraColors[1] = [rgb.r / 255 * 0.2, rgb.g / 255 * 0.2, rgb.b / 255 * 0.2];
     auroraColors[2] = [rgb.r / 255 * 0.5, rgb.g / 255 * 0.5, rgb.b / 255 * 0.5];
@@ -1504,8 +1547,14 @@ function loadTrack(index) {
   if (nowPlayingTitle) {
     nowPlayingTitle.textContent = track.title.replace(/<[^>]*>/g, '');
   }
+  const nowPlayingArtist = document.getElementById('now-playing-artist');
+  if (nowPlayingArtist) {
+    nowPlayingArtist.textContent = track.artist;
+  }
 
-  if (vinyl) {
+  // Note: Vinyl texture is updated by flipVinylToNewTrack() during transitions
+  // This is only needed for initial load
+  if (vinyl && !isTransitioning) {
     createVinylTextureWithCover(track).then(texture => {
       vinyl.material.map = texture;
       vinyl.material.needsUpdate = true;
@@ -1513,16 +1562,61 @@ function loadTrack(index) {
   }
 }
 
-function nextTrack() {
-  if (isPlaying) togglePlay();
-  currentTrack = (currentTrack + 1) % tracks.length;
+// Track transition state
+let isTransitioning = false;
+const trackHeader = document.getElementById('track-header');
+
+async function transitionToTrack(newIndex) {
+  if (isTransitioning || newIndex === currentTrack) return;
+  isTransitioning = true;
+
+  // Remember if we were playing
+  const wasPlaying = isPlaying;
+
+  // Phase 1: EXIT - text slides out + vinyl speeds up (in parallel)
+  if (trackHeader) trackHeader.classList.add('exit');
+
+  await Promise.all([
+    vinyl ? vinylSpeedUp(350) : Promise.resolve(),
+    new Promise(r => setTimeout(r, 350))
+  ]);
+
+  // Phase 2: SWAP - everything changes at peak speed
+  if (trackHeader) {
+    trackHeader.classList.remove('exit');
+    trackHeader.classList.add('enter');
+  }
+
+  // Swap vinyl texture during fast spin
+  if (vinyl) swapVinylTexture(newIndex);
+
+  currentTrack = newIndex;
   loadTrack(currentTrack);
+
+  // Resume playback if we were playing
+  if (wasPlaying) {
+    audio.play();
+  }
+
+  void trackHeader?.offsetWidth;
+
+  // Phase 3: ENTER - text slides in + vinyl slows down (in parallel)
+  if (trackHeader) trackHeader.classList.remove('enter');
+
+  await Promise.all([
+    vinyl ? vinylSlowDown(400) : Promise.resolve(),
+    new Promise(r => setTimeout(r, 400))
+  ]);
+
+  isTransitioning = false;
+}
+
+function nextTrack() {
+  transitionToTrack((currentTrack + 1) % tracks.length);
 }
 
 function prevTrack() {
-  if (isPlaying) togglePlay();
-  currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
-  loadTrack(currentTrack);
+  transitionToTrack((currentTrack - 1 + tracks.length) % tracks.length);
 }
 
 // ============================================
@@ -1540,15 +1634,25 @@ audio.addEventListener('loadedmetadata', () => {
 });
 
 audio.addEventListener('ended', () => {
-  document.body.classList.remove('playing');
-  animateTonearm(false);
-  stopStoryReveal();
-  isPlaying = false;
+  // Auto-advance to next track
+  nextTrack();
 });
 
 progressBar.addEventListener('click', (e) => {
   const rect = progressBar.getBoundingClientRect();
   audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+});
+
+// Progress bar tooltip
+const progressTooltip = document.getElementById('progress-tooltip');
+progressBar.addEventListener('mousemove', (e) => {
+  const rect = progressBar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const time = pct * audio.duration;
+  if (progressTooltip && !isNaN(time)) {
+    progressTooltip.textContent = formatTime(time);
+    progressTooltip.style.left = `${e.clientX - rect.left}px`;
+  }
 });
 
 function formatTime(s) {
@@ -1621,10 +1725,8 @@ function selectTrack(index) {
     return;
   }
 
-  if (isPlaying) togglePlay();
-  currentTrack = index;
-  loadTrack(currentTrack);
   closeMenu();
+  transitionToTrack(index);
 }
 
 // Menu event listeners
@@ -1633,11 +1735,43 @@ menuOverlay.addEventListener('click', closeMenu);
 menuClose.addEventListener('click', closeMenu);
 
 // ============================================
+// BUTTON ANIMATIONS
+// ============================================
+function addRipple(button) {
+  button.classList.remove('ripple');
+  void button.offsetWidth;
+  button.classList.add('ripple');
+  setTimeout(() => button.classList.remove('ripple'), 600);
+}
+
+function addShoot(button) {
+  button.classList.remove('shoot');
+  void button.offsetWidth;
+  button.classList.add('shoot');
+  setTimeout(() => button.classList.remove('shoot'), 300);
+}
+
+// ============================================
 // EVENTS
 // ============================================
-canvas.addEventListener('click', togglePlay);
-prevBtn.addEventListener('click', prevTrack);
-nextBtn.addEventListener('click', nextTrack);
+canvas.addEventListener('click', () => {
+  if (playPill) addRipple(playPill);
+  togglePlay();
+});
+
+playPill.addEventListener('click', () => {
+  addRipple(playPill);
+});
+
+prevBtn.addEventListener('click', () => {
+  addShoot(prevBtn);
+  prevTrack();
+});
+
+nextBtn.addEventListener('click', () => {
+  addShoot(nextBtn);
+  nextTrack();
+});
 
 document.addEventListener('keydown', (e) => {
   // Close menu on Escape

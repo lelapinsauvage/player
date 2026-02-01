@@ -46,7 +46,7 @@
   <!-- Main container - centered layout -->
   <div class="container">
     <!-- Top: Editorial track info -->
-    <header class="track-header">
+    <header class="track-header" id="track-header">
       <div class="track-meta">
         <span class="context-item" id="album">good kid, m.A.A.d city</span>
         <span class="context-dot"></span>
@@ -77,6 +77,7 @@
       <div class="player-controls">
         <div class="progress-bar" id="progress-bar">
           <div class="progress-fill" id="progress-fill"></div>
+          <div class="progress-tooltip" id="progress-tooltip">0:00</div>
         </div>
         <div class="time-row">
           <span class="time" id="time-current">0:00</span>
@@ -89,7 +90,10 @@
         <!-- Now playing button -->
         <button class="now-playing-btn" id="menu-btn" aria-label="Song menu">
           <div class="now-playing-cover" id="now-playing-cover"></div>
-          <span class="now-playing-title" id="now-playing-title">Money Trees</span>
+          <div class="now-playing-text">
+            <span class="now-playing-title" id="now-playing-title">Money Trees</span>
+            <span class="now-playing-artist" id="now-playing-artist">Kendrick Lamar</span>
+          </div>
         </button>
 
         <!-- Nav buttons -->
