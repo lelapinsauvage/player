@@ -259,6 +259,13 @@ const menuList = document.getElementById('menu-list');
 const nowPlayingCover = document.getElementById('now-playing-cover');
 const nowPlayingTitle = document.getElementById('now-playing-title');
 
+// Menu mini player elements
+const menuPlayerCover = document.getElementById('menu-player-cover');
+const menuPlayerTitle = document.getElementById('menu-player-title');
+const menuPlayerArtist = document.getElementById('menu-player-artist');
+const menuPlayBtn = document.getElementById('menu-play-btn');
+const menuNextBtn = document.getElementById('menu-next-btn');
+
 // ============================================
 // THREE.JS SETUP
 // ============================================
@@ -963,6 +970,8 @@ function updateVisualizer() {
 let auroraGl, auroraProgram, auroraTime = 0;
 let auroraBassSmooth = 0, auroraHighSmooth = 0;
 let auroraPlaying = 0; // 0 = paused/greyscale, 1 = playing/color
+let auroraMouseX = 0.5, auroraMouseY = 0.5; // Target mouse position (0-1)
+let auroraMouseSmoothX = 0.5, auroraMouseSmoothY = 0.5; // Smoothed mouse position
 
 // Album palette colors (will be updated per track)
 const auroraColors = [
@@ -999,6 +1008,7 @@ function initAurora() {
     uniform float u_high;
     uniform float u_playing;
     uniform vec2 u_resolution;
+    uniform vec2 u_mouse;
     uniform vec3 u_color1;
     uniform vec3 u_color2;
     uniform vec3 u_color3;
@@ -1051,14 +1061,17 @@ function initAurora() {
       vec2 uv = v_uv;
       vec2 aspect = vec2(u_resolution.x / u_resolution.y, 1.0);
 
+      // Mouse influence - subtle offset (centered at 0.5, 0.5)
+      vec2 mouseOffset = (u_mouse - 0.5) * 0.15;
+
       // Slow time with bass-reactive breathing
       float t = u_time * 0.08;
       float breathe = 1.0 + u_bass * 0.15;
 
-      // Create organic blob shapes
-      float n1 = fbm(uv * 1.5 * aspect + vec2(t * 0.3, t * 0.2));
-      float n2 = fbm(uv * 2.0 * aspect + vec2(-t * 0.25, t * 0.15) + 5.0);
-      float n3 = fbm(uv * 1.2 * aspect + vec2(t * 0.2, -t * 0.3) + 10.0);
+      // Create organic blob shapes - mouse subtly shifts the noise
+      float n1 = fbm(uv * 1.5 * aspect + vec2(t * 0.3, t * 0.2) + mouseOffset);
+      float n2 = fbm(uv * 2.0 * aspect + vec2(-t * 0.25, t * 0.15) + 5.0 - mouseOffset * 0.7);
+      float n3 = fbm(uv * 1.2 * aspect + vec2(t * 0.2, -t * 0.3) + 10.0 + mouseOffset * 0.5);
 
       // Add high-frequency turbulence on highs
       float turbulence = u_high * 0.3;
@@ -1074,13 +1087,13 @@ function initAurora() {
       centerGlow = max(0.0, centerGlow);
       color += u_color1 * centerGlow * 0.15 * breathe;
 
-      // Convert to greyscale when not playing
+      // Subtle desaturation when paused (keep 60% color)
       float grey = dot(color, vec3(0.299, 0.587, 0.114));
-      vec3 greyColor = vec3(grey);
-      color = mix(greyColor, color, u_playing);
+      vec3 desaturated = mix(vec3(grey), color, 0.6);
+      color = mix(desaturated, color, u_playing);
 
       // Slightly dimmer when paused
-      float alpha = mix(0.08, 0.12 + u_bass * 0.03, u_playing);
+      float alpha = mix(0.1, 0.12 + u_bass * 0.03, u_playing);
 
       gl_FragColor = vec4(color, alpha);
     }
@@ -1127,6 +1140,12 @@ function initAurora() {
 
   resizeAurora();
   window.addEventListener('resize', resizeAurora);
+
+  // Mouse tracking for subtle fog movement
+  document.addEventListener('mousemove', (e) => {
+    auroraMouseX = e.clientX / window.innerWidth;
+    auroraMouseY = e.clientY / window.innerHeight;
+  });
 }
 
 function resizeAurora() {
@@ -1143,6 +1162,10 @@ function updateAurora() {
   }
 
   const gl = auroraGl;
+
+  // Smooth mouse interpolation (very smooth, minimal)
+  auroraMouseSmoothX += (auroraMouseX - auroraMouseSmoothX) * 0.02;
+  auroraMouseSmoothY += (auroraMouseY - auroraMouseSmoothY) * 0.02;
 
   // Only advance time when playing
   if (isPlaying) {
@@ -1179,6 +1202,7 @@ function updateAurora() {
   gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_high'), auroraHighSmooth);
   gl.uniform1f(gl.getUniformLocation(auroraProgram, 'u_playing'), auroraPlaying);
   gl.uniform2f(gl.getUniformLocation(auroraProgram, 'u_resolution'), auroraCanvas.width, auroraCanvas.height);
+  gl.uniform2f(gl.getUniformLocation(auroraProgram, 'u_mouse'), auroraMouseSmoothX, auroraMouseSmoothY);
   gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color1'), auroraColors[0]);
   gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color2'), auroraColors[1]);
   gl.uniform3fv(gl.getUniformLocation(auroraProgram, 'u_color3'), auroraColors[2]);
@@ -1192,10 +1216,15 @@ function updateAurora() {
 // ============================================
 // ARC BARS VISUALIZER (behind vinyl)
 // ============================================
+const numBars = 20;
+const smoothedBarValues = new Array(numBars).fill(0);
+
 function initVizBars() {
   if (!vizBars) return;
   resizeVizBars();
   window.addEventListener('resize', resizeVizBars);
+  // Start animation loop immediately so bars can animate down when paused
+  updateVizBars();
 }
 
 function resizeVizBars() {
@@ -1205,8 +1234,8 @@ function resizeVizBars() {
 }
 
 function updateVizBars() {
-  if (!vizBarsCtx || !isPlaying) {
-    if (isPlaying) requestAnimationFrame(updateVizBars);
+  if (!vizBarsCtx) {
+    requestAnimationFrame(updateVizBars);
     return;
   }
 
@@ -1219,51 +1248,74 @@ function updateVizBars() {
     return;
   }
 
-  if (!analyser) {
-    requestAnimationFrame(updateVizBars);
-    return;
-  }
-
   vizBarsCtx.clearRect(0, 0, w, h);
 
   const cx = w / 2;
   const cy = h * 0.65;
 
-  analyser.getByteFrequencyData(dataArray);
+  // Get target values - either from audio or zero when paused
+  const targetValues = new Array(numBars).fill(0);
 
-  let totalEnergy = 0;
-  for (let i = 0; i < dataArray.length; i++) totalEnergy += dataArray[i];
-  totalEnergy = totalEnergy / dataArray.length / 255;
+  if (isPlaying && analyser && dataArray) {
+    analyser.getByteFrequencyData(dataArray);
+    for (let i = 0; i < numBars; i++) {
+      const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
+      targetValues[i] = dataArray[dataIndex] / 255;
+    }
+  }
 
-  if (totalEnergy < 0.02) {
+  // Smooth interpolation - bars rise fast, fall slower
+  for (let i = 0; i < numBars; i++) {
+    const target = targetValues[i];
+    const current = smoothedBarValues[i];
+    if (target > current) {
+      // Rise fast
+      smoothedBarValues[i] += (target - current) * 0.3;
+    } else {
+      // Fall slower (smooth decay)
+      smoothedBarValues[i] += (target - current) * 0.08;
+    }
+  }
+
+  // Calculate overall fade factor for smooth disappearance
+  const avgValue = smoothedBarValues.reduce((a, b) => a + b, 0) / numBars;
+
+  // Skip drawing only when completely faded
+  if (avgValue < 0.001) {
     requestAnimationFrame(updateVizBars);
     return;
   }
 
+  // Fade multiplier - kicks in when average drops below 0.15
+  const fadeMult = Math.min(1, avgValue / 0.15);
+
   const arcStart = -Math.PI;
   const arcEnd = 0;
-  const numBars = 20;
 
   vizBarsCtx.lineCap = 'round';
   for (let i = 0; i < numBars; i++) {
     const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
-    const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
-    const value = dataArray[dataIndex] / 255;
+    const value = smoothedBarValues[i];
 
-    const barLength = value * 270 + 60;
+    // Scale bar length with fade - shrinks to inner radius as it fades
+    const baseLength = value * 270 + 60;
+    const barLength = 30 + (baseLength - 30) * fadeMult;
+
     const x1 = cx + Math.cos(angle) * 30;
     const y1 = cy + Math.sin(angle) * 30;
     const x2 = cx + Math.cos(angle) * barLength;
     const y2 = cy + Math.sin(angle) * barLength;
 
     const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
-    const opacity = 0.4 + value * 0.5 - centerDist * 0.1;
+    // Scale opacity with fade - goes to 0 as it disappears
+    const baseOpacity = 0.4 + value * 0.5 - centerDist * 0.1;
+    const opacity = baseOpacity * fadeMult;
 
-    const accent = tracks[currentTrack].accentColor || tracks[currentTrack].labelColor;
+    const accent = tracks[currentTrack]?.accentColor || tracks[currentTrack]?.labelColor;
     const rgb = hexToRgb(accent);
     vizBarsCtx.strokeStyle = rgb
-      ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.max(0.15, opacity)})`
-      : `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
+      ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
+      : `rgba(196, 163, 90, ${opacity})`;
     vizBarsCtx.lineWidth = 30;
     vizBarsCtx.beginPath();
     vizBarsCtx.moveTo(x1, y1);
@@ -1593,6 +1645,12 @@ async function transitionToTrack(newIndex) {
   currentTrack = newIndex;
   loadTrack(currentTrack);
 
+  // Update menu if open
+  if (menuOpen) {
+    updateMenuPlayer();
+    populateMenu();
+  }
+
   // Resume playback if we were playing
   if (wasPlaying) {
     audio.play();
@@ -1634,8 +1692,13 @@ audio.addEventListener('loadedmetadata', () => {
 });
 
 audio.addEventListener('ended', () => {
-  // Auto-advance to next track
-  nextTrack();
+  // Check queue first, then auto-advance
+  if (trackQueue.length > 0) {
+    const nextIndex = trackQueue.shift();
+    transitionToTrack(nextIndex);
+  } else {
+    nextTrack();
+  }
 });
 
 progressBar.addEventListener('click', (e) => {
@@ -1668,6 +1731,7 @@ let menuOpen = false;
 function openMenu() {
   menuOpen = true;
   populateMenu();
+  updateMenuPlayer();
 
   // Step 1: Hide button, start menu at button size
   menuBtn.classList.add('hidden');
@@ -1698,25 +1762,25 @@ function closeMenu() {
   songMenu.style.height = currentHeight + 'px';
   songMenu.style.width = currentWidth + 'px';
 
-  // Start closing
+  // Start closing - content fades first
   songMenu.classList.add('closing');
   menuOverlay.classList.remove('open');
 
-  // Content fades, then shrink+blur+fade all together
+  // After content mostly faded, start shrinking
   setTimeout(() => {
     if (!menuOpen) {
       songMenu.style.height = '48px';
       songMenu.style.width = '180px';
       songMenu.classList.add('shrunk');
     }
-  }, 50);
+  }, 100); // Was 50ms, now 100ms - wait for content
 
-  // Button fades in as menu fades out - crossfade
+  // Button fades in as menu shrinks - crossfade
   setTimeout(() => {
     if (!menuOpen) menuBtn.classList.remove('hidden');
-  }, 80);
+  }, 150); // Was 80ms, now 150ms - better crossfade
 
-  // Clean up
+  // Clean up after animation completes
   setTimeout(() => {
     if (!menuOpen) {
       songMenu.classList.remove('open');
@@ -1754,19 +1818,83 @@ function populateMenu() {
         <div class="song-title">${track.title.replace(/<[^>]*>/g, '')}</div>
         <div class="song-artist">${track.artist}</div>
       </div>
+      <div class="song-item-controls">
+        <button class="song-item-btn play-btn" data-index="${index}" aria-label="Play now">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+        <button class="song-item-btn queue-btn" data-index="${index}" aria-label="Play next">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14"/>
+            <path d="M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
       <div class="song-playing">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M8 5v14l11-7z"/>
         </svg>
       </div>
     `;
 
-    item.addEventListener('click', () => {
+    // Click on song info to select
+    item.querySelector('.song-info').addEventListener('click', () => {
       selectTrack(index);
+    });
+    item.querySelector('.song-cover').addEventListener('click', () => {
+      selectTrack(index);
+    });
+
+    // Play button
+    item.querySelector('.play-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      playTrackNow(index);
+    });
+
+    // Queue button (play next)
+    item.querySelector('.queue-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      addToQueue(index);
     });
 
     menuList.appendChild(item);
   });
+}
+
+// Track queue
+let trackQueue = [];
+
+function playTrackNow(index) {
+  closeMenu();
+  transitionToTrack(index);
+  // Start playing if not already
+  if (!isPlaying) {
+    setTimeout(() => togglePlay(), 500);
+  }
+}
+
+function addToQueue(index) {
+  trackQueue.push(index);
+  // Show feedback
+  const btn = document.querySelector(`.queue-btn[data-index="${index}"]`);
+  if (btn) {
+    btn.classList.add('queued');
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    `;
+    setTimeout(() => {
+      btn.classList.remove('queued');
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14"/>
+          <path d="M12 5l7 7-7 7"/>
+        </svg>
+      `;
+    }, 1500);
+  }
 }
 
 function selectTrack(index) {
@@ -1783,6 +1911,36 @@ function selectTrack(index) {
 menuBtn.addEventListener('click', toggleMenu);
 menuOverlay.addEventListener('click', closeMenu);
 menuClose.addEventListener('click', closeMenu);
+
+// Menu mini player controls
+if (menuPlayBtn) {
+  menuPlayBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+}
+
+if (menuNextBtn) {
+  menuNextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nextTrack();
+    updateMenuPlayer();
+  });
+}
+
+function updateMenuPlayer() {
+  const track = tracks[currentTrack];
+  if (menuPlayerCover) {
+    menuPlayerCover.style.backgroundImage = track.cover ? `url(${track.cover})` : '';
+    menuPlayerCover.style.backgroundColor = track.labelColor;
+  }
+  if (menuPlayerTitle) {
+    menuPlayerTitle.textContent = track.title.replace(/<[^>]*>/g, '');
+  }
+  if (menuPlayerArtist) {
+    menuPlayerArtist.textContent = track.artist;
+  }
+}
 
 // ============================================
 // BUTTON ANIMATIONS

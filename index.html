@@ -38,6 +38,37 @@
     <div class="menu-list" id="menu-list">
       <!-- Songs will be populated by JS -->
     </div>
+    <div class="menu-player" id="menu-player">
+      <div class="menu-player-info">
+        <div class="menu-player-cover" id="menu-player-cover"></div>
+        <div class="menu-player-text">
+          <span class="menu-player-title" id="menu-player-title">Money Trees</span>
+          <span class="menu-player-artist" id="menu-player-artist">Kendrick Lamar</span>
+        </div>
+      </div>
+      <div class="menu-player-controls">
+        <div class="menu-player-viz" id="menu-player-viz">
+          <span class="viz-bar"></span>
+          <span class="viz-bar"></span>
+          <span class="viz-bar"></span>
+          <span class="viz-bar"></span>
+        </div>
+        <button class="menu-player-btn" id="menu-play-btn" aria-label="Play/Pause">
+          <svg class="menu-icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <svg class="menu-icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+        <button class="menu-player-btn" id="menu-next-btn" aria-label="Next track">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Album atmosphere -->
