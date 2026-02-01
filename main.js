@@ -16,6 +16,7 @@ const tracks = [
     number: '01',
     src: 'money-trees.mp3',
     labelColor: '#c4a35a',
+    accentColor: '#8bc34a',
     quote: '"it go Halle Berry or hallelujah"',
     location: 'TDE Studios, Carson, CA',
     sample: '"Silver Soul" by Beach House',
@@ -32,6 +33,7 @@ const tracks = [
     number: '02',
     src: 'nights.mp3',
     labelColor: '#4a7c59',
+    accentColor: '#4db6ac',
     quote: '"Every night fucks every day up"',
     location: 'Westlake Recording Studios',
     sample: 'Original Composition',
@@ -48,6 +50,7 @@ const tracks = [
     number: '06',
     src: 'runaway.mp3',
     labelColor: '#e84141',
+    accentColor: '#ef5350',
     quote: '"Let\'s have a toast for the douchebags"',
     location: 'Honolulu, Hawaii',
     sample: '"Expo 83" by Backyard Heavies',
@@ -64,6 +67,7 @@ const tracks = [
     number: '07',
     src: 'kick-in-the-door.mp3',
     labelColor: '#1a1a1a',
+    accentColor: '#ffd54f',
     quote: '"Your reign on the top was short like leprechauns"',
     location: 'D&D Studios, New York',
     sample: '"Kick in the Door" by Screamin\' Jay Hawkins',
@@ -80,6 +84,7 @@ const tracks = [
     number: '08',
     src: 'humble.mp3',
     labelColor: '#c41e1e',
+    accentColor: '#ff1744',
     quote: '"Sit down, be humble"',
     location: 'Top Dawg Studios, Carson',
     sample: 'Original Composition',
@@ -96,6 +101,7 @@ const tracks = [
     number: '09',
     src: 'next-episode.mp3',
     labelColor: '#2ecc40',
+    accentColor: '#66bb6a',
     quote: '"Smoke weed everyday"',
     location: 'Record One, Los Angeles',
     sample: '"The Edge" by David McCallum',
@@ -112,6 +118,7 @@ const tracks = [
     number: '10',
     src: 'blinding-lights.mp3',
     labelColor: '#e80b0b',
+    accentColor: '#ff1744',
     quote: '"I\'m blinded by the lights"',
     location: 'Conway Recording Studios, LA',
     sample: 'Original Composition',
@@ -128,6 +135,7 @@ const tracks = [
     number: '11',
     src: 'sicko-mode.mp3',
     labelColor: '#d4a84b',
+    accentColor: '#ffb74d',
     quote: '"Sun is down, freezin\' cold"',
     location: 'Record Plant, Los Angeles',
     sample: '"Like a Light" by Big Hawk',
@@ -144,6 +152,7 @@ const tracks = [
     number: '12',
     src: 'empire-state.mp3',
     labelColor: '#c41e3a',
+    accentColor: '#42a5f5',
     quote: '"Concrete jungle where dreams are made of"',
     location: 'Roc the Mic Studios, New York',
     sample: '"Love on a Two-Way Street" by The Moments',
@@ -160,6 +169,7 @@ const tracks = [
     number: '13',
     src: 'praise-the-lord.mp3',
     labelColor: '#e6c52c',
+    accentColor: '#ffee58',
     quote: '"I might take your girl and kidnap her"',
     location: 'Shangri-La, Malibu',
     sample: 'Original Composition',
@@ -176,6 +186,7 @@ const tracks = [
     number: '14',
     src: 'congratulations.mp3',
     labelColor: '#8b7355',
+    accentColor: '#bcaaa4',
     quote: '"They said I wouldn\'t be nothin\'"',
     location: 'Republic Studios, Los Angeles',
     sample: 'Original Composition',
@@ -192,6 +203,7 @@ const tracks = [
     number: '15',
     src: 'bad-and-boujee.mp3',
     labelColor: '#c41e3a',
+    accentColor: '#ef5350',
     quote: '"Raindrop, drop top"',
     location: 'Triangle Sound Studios, Atlanta',
     sample: 'Original Composition',
@@ -1245,7 +1257,11 @@ function updateVizBars() {
     const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
     const opacity = 0.4 + value * 0.5 - centerDist * 0.1;
 
-    vizBarsCtx.strokeStyle = `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
+    const accent = tracks[currentTrack].accentColor || tracks[currentTrack].labelColor;
+    const rgb = hexToRgb(accent);
+    vizBarsCtx.strokeStyle = rgb
+      ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.max(0.15, opacity)})`
+      : `rgba(196, 163, 90, ${Math.max(0.15, opacity)})`;
     vizBarsCtx.lineWidth = 30;
     vizBarsCtx.beginPath();
     vizBarsCtx.moveTo(x1, y1);
@@ -1425,9 +1441,31 @@ function togglePlay() {
   }
 }
 
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
 function loadTrack(index) {
   const track = tracks[index];
   audio.src = track.src;
+
+  // Set accent color CSS custom property
+  const accent = track.accentColor || track.labelColor;
+  document.documentElement.style.setProperty('--track-accent', accent);
+
+  // Update aurora colors based on track accent
+  const rgb = hexToRgb(accent);
+  if (rgb) {
+    auroraColors[0] = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+    auroraColors[1] = [rgb.r / 255 * 0.2, rgb.g / 255 * 0.2, rgb.b / 255 * 0.2];
+    auroraColors[2] = [rgb.r / 255 * 0.5, rgb.g / 255 * 0.5, rgb.b / 255 * 0.5];
+    auroraColors[3] = [rgb.r / 255 * 0.1, rgb.g / 255 * 0.1, rgb.b / 255 * 0.1];
+  }
 
   // Update track number
   trackNumber.textContent = track.number;
