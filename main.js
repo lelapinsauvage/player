@@ -461,6 +461,372 @@ const menuPlayerArtist = document.getElementById('menu-player-artist');
 const menuPlayBtn = document.getElementById('menu-play-btn');
 const menuNextBtn = document.getElementById('menu-next-btn');
 
+// Loader elements
+const loaderOverlay = document.getElementById('loader');
+const loaderCanvas = document.getElementById('loader-canvas');
+
+// ============================================
+// LOADER - ASCII PARTICLE SYSTEM
+// Characters rain → form vinyl → spin until loaded → explode
+// ============================================
+let loaderActive = true;
+let loaderComplete = false;
+let loaderCtx = null;
+let loaderStartTime = 0;
+let loaderAnimationId = null;
+let loaderParticles = [];
+let loaderVizColors = [];
+let loaderAccentColor = '#ff5722';
+let assetsLoaded = false; // Track when assets are ready
+let explosionStartTime = null; // When explosion phase began
+
+const LOADER_CHARS = ['+', '.', ':', '·', '|', '-'];
+const MIN_LOADER_TIME = 1.2; // Minimum time before explosion can start
+const EXPLOSION_DURATION = 0.35; // How long explosion takes
+
+class LoaderParticle {
+  constructor(x, y, char, color) {
+    this.x = x;
+    this.y = y;
+    this.startX = x;
+    this.startY = y;
+    this.char = char;
+    this.color = color;
+    this.alpha = 1;
+    this.size = 12 + Math.random() * 4;
+
+    // Spawn delay for staggered rain effect
+    this.spawnDelay = 0;
+
+    // Vinyl target position (set later)
+    this.vinylX = 0;
+    this.vinylY = 0;
+    this.vinylAngle = 0;
+    this.vinylRadius = 0;
+    this.isGroove = false;
+    this.isLabel = false;
+    this.isSpindle = false;
+
+    // Explode phase - final position on screen
+    this.finalX = Math.random() * window.innerWidth;
+    this.finalY = Math.random() * window.innerHeight;
+  }
+}
+
+function initLoader() {
+  if (!loaderCanvas || !loaderOverlay) {
+    loaderActive = false;
+    return;
+  }
+
+  const track = tracks[currentTrack];
+  loaderVizColors = track.vizColors || ['#c4a35a'];
+  loaderAccentColor = track.accentColor || '#c4a35a';
+
+  // Setup Canvas 2D
+  loaderCtx = loaderCanvas.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  loaderCanvas.width = window.innerWidth * dpr;
+  loaderCanvas.height = window.innerHeight * dpr;
+  loaderCanvas.style.width = window.innerWidth + 'px';
+  loaderCanvas.style.height = window.innerHeight + 'px';
+  loaderCtx.scale(dpr, dpr);
+
+  // Create particles
+  initLoaderParticles();
+
+  loaderStartTime = performance.now();
+  updateLoader();
+}
+
+// Call this when critical assets are loaded
+function signalAssetsLoaded() {
+  assetsLoaded = true;
+}
+
+// Fallback: if assets take too long, proceed anyway
+setTimeout(() => {
+  if (!assetsLoaded) {
+    console.log('Loader timeout - proceeding');
+    signalAssetsLoaded();
+  }
+}, 8000);
+
+function initLoaderParticles() {
+  loaderParticles = [];
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const cx = w / 2;
+  const cy = h / 2;
+  const vinylRadius = Math.min(w, h) * 0.22;
+  const labelRadius = vinylRadius * 0.3;
+
+  // Minimal grooves - just enough to read as vinyl
+  const numGrooves = 8;
+
+  for (let g = 0; g < numGrooves; g++) {
+    const grooveRadius = labelRadius + 10 + (vinylRadius - labelRadius - 10) * (g / (numGrooves - 1));
+    const charsInGroove = Math.floor(grooveRadius * 0.35); // ~20-40 per groove
+
+    for (let i = 0; i < charsInGroove; i++) {
+      const angle = (i / charsInGroove) * Math.PI * 2;
+
+      const p = new LoaderParticle(
+        Math.random() * w,
+        Math.random() * h,
+        '─',
+        loaderAccentColor
+      );
+
+      p.spawnDelay = 0.25 + Math.random() * 0.2;
+      p.vinylX = cx + Math.cos(angle) * grooveRadius;
+      p.vinylY = cy + Math.sin(angle) * grooveRadius;
+      p.vinylAngle = angle;
+      p.vinylRadius = grooveRadius;
+      p.isGroove = true;
+      p.size = 14;
+      p.alpha = 0.6;
+      loaderParticles.push(p);
+    }
+  }
+
+  // Simple label - just a few rings
+  for (let ring = 0; ring < 4; ring++) {
+    const r = 12 + ring * 15;
+    const charsInRing = 6 + ring * 3;
+
+    for (let i = 0; i < charsInRing; i++) {
+      const angle = (i / charsInRing) * Math.PI * 2;
+
+      const p = new LoaderParticle(
+        Math.random() * w,
+        Math.random() * h,
+        '●',
+        loaderAccentColor
+      );
+
+      p.spawnDelay = 0.25 + Math.random() * 0.15;
+      p.vinylX = cx + Math.cos(angle) * r;
+      p.vinylY = cy + Math.sin(angle) * r;
+      p.vinylAngle = angle;
+      p.vinylRadius = r;
+      p.isLabel = true;
+      p.size = 12;
+      p.alpha = 0.8;
+      loaderParticles.push(p);
+    }
+  }
+
+  // Center dot
+  const spindleP = new LoaderParticle(cx, cy - 50, '●', '#000');
+  spindleP.spawnDelay = 0.28;
+  spindleP.vinylX = cx;
+  spindleP.vinylY = cy;
+  spindleP.isSpindle = true;
+  spindleP.size = 16;
+  spindleP.alpha = 1;
+  loaderParticles.push(spindleP);
+
+  // Minimal background
+  for (let i = 0; i < 15; i++) {
+    const p = new LoaderParticle(
+      Math.random() * w,
+      Math.random() * h,
+      '·',
+      loaderAccentColor
+    );
+    p.spawnDelay = 0.25 + Math.random() * 0.15;
+    p.vinylX = p.startX;
+    p.vinylY = p.startY;
+    p.vinylAngle = 0;
+    p.vinylRadius = 0;
+    p.alpha = 0.1;
+    p.size = 10;
+    loaderParticles.push(p);
+  }
+}
+
+function updateLoader() {
+  if (!loaderActive || !loaderCtx) return;
+
+  const elapsed = (performance.now() - loaderStartTime) / 1000;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // Phase timing
+  const cursorEnd = 0.2;
+  const rainEnd = 0.5;
+  const formEnd = 0.9;
+
+  // Determine current phase
+  let phase;
+  if (explosionStartTime) {
+    phase = 'explode';
+  } else if (elapsed < cursorEnd) {
+    phase = 'cursor';
+  } else if (elapsed < rainEnd) {
+    phase = 'rain';
+  } else if (elapsed < formEnd) {
+    phase = 'form';
+  } else {
+    phase = 'spin';
+    if (elapsed >= MIN_LOADER_TIME && assetsLoaded) {
+      explosionStartTime = performance.now();
+      phase = 'explode';
+      // Make overlay transparent so aurora shows through canvas
+      if (loaderOverlay) loaderOverlay.style.background = 'transparent';
+    }
+  }
+
+  // Clear and draw background - fades during explosion to reveal aurora
+  loaderCtx.clearRect(0, 0, w, h);
+  if (phase === 'explode') {
+    const explodeElapsed = (performance.now() - explosionStartTime) / 1000;
+    const progress = Math.min(1, explodeElapsed / EXPLOSION_DURATION);
+    const bgAlpha = 1 - progress; // Fade from black to transparent
+    loaderCtx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
+  } else {
+    loaderCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+  }
+  loaderCtx.fillRect(0, 0, w, h);
+
+  loaderCtx.textAlign = 'center';
+  loaderCtx.textBaseline = 'middle';
+
+  const rgb = hexToRgb(loaderAccentColor);
+
+  // Render based on phase
+  if (phase === 'cursor') {
+    const blink = Math.floor(elapsed * 5) % 2 === 0;
+    if (blink) {
+      loaderCtx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      loaderCtx.font = 'bold 24px monospace';
+      loaderCtx.fillText('_', cx, cy);
+    }
+  }
+  else if (phase === 'rain') {
+    for (const p of loaderParticles) {
+      if (elapsed < p.spawnDelay) continue;
+
+      const particleAge = elapsed - p.spawnDelay;
+      const fadeIn = Math.min(1, particleAge * 4);
+      const driftX = Math.sin(particleAge * 2 + p.startX * 0.01) * 15;
+      const driftY = Math.cos(particleAge * 1.5 + p.startY * 0.01) * 10;
+
+      p.x = p.startX + driftX;
+      p.y = p.startY + driftY;
+
+      loaderCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fadeIn * p.alpha * 0.7})`;
+      loaderCtx.font = `${p.size}px monospace`;
+      loaderCtx.fillText(p.char, p.x, p.y);
+    }
+  }
+  else if (phase === 'form') {
+    const formProgress = (elapsed - rainEnd) / (formEnd - rainEnd);
+    const ease = 1 - Math.pow(1 - formProgress, 3);
+
+    for (const p of loaderParticles) {
+      const drawX = p.x + (p.vinylX - p.x) * ease;
+      const drawY = p.y + (p.vinylY - p.y) * ease;
+
+      loaderCtx.save();
+      loaderCtx.translate(drawX, drawY);
+      if (p.isGroove) loaderCtx.rotate(p.vinylAngle + Math.PI / 2);
+
+      if (p.isSpindle) {
+        loaderCtx.fillStyle = 'rgba(0,0,0,1)';
+      } else {
+        loaderCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${p.alpha})`;
+      }
+      loaderCtx.font = `${p.size}px monospace`;
+      loaderCtx.fillText(p.char, 0, 0);
+      loaderCtx.restore();
+
+      // Store final position
+      if (formProgress > 0.9) {
+        p.x = p.vinylX;
+        p.y = p.vinylY;
+      }
+    }
+  }
+  else if (phase === 'spin') {
+    const rotation = (elapsed - formEnd) * 3;
+
+    for (const p of loaderParticles) {
+      let drawX, drawY, drawAngle = 0;
+
+      if (p.vinylRadius > 0) {
+        drawAngle = p.vinylAngle + rotation;
+        drawX = cx + Math.cos(drawAngle) * p.vinylRadius;
+        drawY = cy + Math.sin(drawAngle) * p.vinylRadius;
+      } else {
+        drawX = p.vinylX;
+        drawY = p.vinylY;
+      }
+
+      loaderCtx.save();
+      loaderCtx.translate(drawX, drawY);
+      if (p.isGroove) loaderCtx.rotate(drawAngle + Math.PI / 2);
+
+      if (p.isSpindle) {
+        loaderCtx.fillStyle = 'rgba(0,0,0,1)';
+      } else {
+        loaderCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${p.alpha})`;
+      }
+      loaderCtx.font = `${p.size}px monospace`;
+      loaderCtx.fillText(p.char, 0, 0);
+      loaderCtx.restore();
+
+      p.x = drawX;
+      p.y = drawY;
+    }
+  }
+  else if (phase === 'explode') {
+    const explodeElapsed = (performance.now() - explosionStartTime) / 1000;
+    const progress = Math.min(1, explodeElapsed / EXPLOSION_DURATION);
+    const ease = Math.pow(progress, 0.5);
+
+    for (const p of loaderParticles) {
+      const drawX = p.x + (p.finalX - p.x) * ease;
+      const drawY = p.y + (p.finalY - p.y) * ease;
+      const alpha = p.alpha * (1 - progress) * 0.6;
+
+      if (alpha < 0.02) continue;
+
+      loaderCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+      loaderCtx.font = `${p.size}px monospace`;
+      loaderCtx.fillText(p.char, drawX, drawY);
+    }
+
+    if (progress >= 1) {
+      completeLoader();
+      return;
+    }
+  }
+
+  loaderAnimationId = requestAnimationFrame(updateLoader);
+}
+
+function completeLoader() {
+  if (loaderComplete) return;
+  loaderComplete = true;
+  loaderActive = false;
+
+  if (loaderAnimationId) cancelAnimationFrame(loaderAnimationId);
+
+  // Remove loader overlay immediately - transition already happened via canvas
+  if (loaderOverlay) {
+    loaderOverlay.style.display = 'none';
+  }
+
+  // Trigger entrance animations for UI elements
+  requestAnimationFrame(() => {
+    document.body.classList.add('loaded');
+  });
+}
+
 // ============================================
 // THREE.JS SETUP
 // ============================================
@@ -632,6 +998,9 @@ function loadTurntable() {
     });
 
     compositionGroup.add(turntable);
+
+    // Signal that main assets are loaded
+    signalAssetsLoaded();
   });
 }
 
@@ -1111,6 +1480,7 @@ const soundState = {
   lastBassHit: 0,
   lastHighHit: 0
 };
+let soundReactiveRunning = false; // Prevent multiple animation loops
 
 function setupAudio() {
   if (audioContext) return;
@@ -1133,32 +1503,43 @@ function setupAudio() {
 }
 
 function updateSoundReactive() {
-  if (!analyser || !isPlaying) return;
+  // Prevent multiple loops - if already running, don't start another
+  if (soundReactiveRunning) return;
+  soundReactiveRunning = true;
 
-  analyser.getByteFrequencyData(dataArray);
-  bassAnalyser.getByteFrequencyData(bassDataArray);
+  function tick() {
+    if (!analyser || !isPlaying) {
+      soundReactiveRunning = false; // Allow restart when play resumes
+      return;
+    }
 
-  // Calculate frequency bands
-  let bassSum = 0;
-  for (let i = 0; i < 8; i++) {
-    bassSum += bassDataArray[i];
+    analyser.getByteFrequencyData(dataArray);
+    bassAnalyser.getByteFrequencyData(bassDataArray);
+
+    // Calculate frequency bands
+    let bassSum = 0;
+    for (let i = 0; i < 8; i++) {
+      bassSum += bassDataArray[i];
+    }
+    soundState.bass = bassSum / 8 / 255;
+
+    let highSum = 0;
+    for (let i = 20; i < 60; i++) {
+      highSum += dataArray[i];
+    }
+    soundState.high = highSum / 40 / 255;
+
+    // Smooth values
+    soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.12;
+    soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
+
+    // Update visualizer bars
+    updateVisualizer();
+
+    requestAnimationFrame(tick);
   }
-  soundState.bass = bassSum / 8 / 255;
 
-  let highSum = 0;
-  for (let i = 20; i < 60; i++) {
-    highSum += dataArray[i];
-  }
-  soundState.high = highSum / 40 / 255;
-
-  // Smooth values
-  soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.12;
-  soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
-
-  // Update visualizer bars
-  updateVisualizer();
-
-  requestAnimationFrame(updateSoundReactive);
+  tick();
 }
 
 function updateVisualizer() {
@@ -1177,9 +1558,9 @@ function updateVisualizer() {
 // ============================================
 let auroraGl, auroraProgram, auroraTime = 0;
 let auroraBassSmooth = 0, auroraHighSmooth = 0;
-let auroraPlaying = 0; // 0 = paused/greyscale, 1 = playing/color
-let auroraMouseX = 0.5, auroraMouseY = 0.5; // Target mouse position (0-1)
-let auroraMouseSmoothX = 0.5, auroraMouseSmoothY = 0.5; // Smoothed mouse position
+let auroraPlaying = 1; // Start hidden, fade in on pause
+let auroraMouseX = 0.5, auroraMouseY = 0.5;
+let auroraMouseSmoothX = 0.5, auroraMouseSmoothY = 0.5;
 
 // Album palette colors (will be updated per track)
 const auroraColors = [
@@ -1269,14 +1650,14 @@ function initAurora() {
       vec2 uv = v_uv;
       vec2 aspect = vec2(u_resolution.x / u_resolution.y, 1.0);
 
-      // Mouse influence - subtle offset (centered at 0.5, 0.5)
+      // Mouse influence - subtle offset
       vec2 mouseOffset = (u_mouse - 0.5) * 0.15;
 
-      // Slow time with bass-reactive breathing
+      // Time always advances - clouds always animate
       float t = u_time * 0.08;
       float breathe = 1.0 + u_bass * 0.15;
 
-      // Create organic blob shapes - mouse subtly shifts the noise
+      // Create organic blob shapes
       float n1 = fbm(uv * 1.5 * aspect + vec2(t * 0.3, t * 0.2) + mouseOffset);
       float n2 = fbm(uv * 2.0 * aspect + vec2(-t * 0.25, t * 0.15) + 5.0 - mouseOffset * 0.7);
       float n3 = fbm(uv * 1.2 * aspect + vec2(t * 0.2, -t * 0.3) + 10.0 + mouseOffset * 0.5);
@@ -1300,8 +1681,8 @@ function initAurora() {
       vec3 desaturated = mix(vec3(grey), color, 0.6);
       color = mix(desaturated, color, u_playing);
 
-      // Hide clouds while playing, show when paused
-      float alpha = mix(0.12, 0.0, u_playing);
+      // Smooth fade: visible when paused, hidden when playing
+      float alpha = (1.0 - u_playing) * 0.12;
 
       gl_FragColor = vec4(color, alpha);
     }
@@ -1371,18 +1752,16 @@ function updateAurora() {
 
   const gl = auroraGl;
 
-  // Smooth mouse interpolation (very smooth, minimal)
+  // Smooth mouse interpolation
   auroraMouseSmoothX += (auroraMouseX - auroraMouseSmoothX) * 0.02;
   auroraMouseSmoothY += (auroraMouseY - auroraMouseSmoothY) * 0.02;
 
-  // Only advance time when playing
-  if (isPlaying) {
-    auroraTime += 0.016;
-  }
+  // Time always advances - clouds always move
+  auroraTime += 0.016;
 
-  // Smooth transition for playing state
+  // Smooth fade transition for playing state (~300ms fade)
   const targetPlaying = isPlaying ? 1 : 0;
-  auroraPlaying += (targetPlaying - auroraPlaying) * 0.03;
+  auroraPlaying += (targetPlaying - auroraPlaying) * 0.15;
 
   // Smooth audio values
   if (analyser && isPlaying) {
@@ -2012,6 +2391,7 @@ function syncAsciiBg() {
 // ============================================
 const numBars = 20;
 const smoothedBarValues = new Array(numBars).fill(0);
+let vizBarsRunning = false; // Prevent multiple animation loops
 
 function initVizBars() {
   if (!vizBars) return;
@@ -2028,108 +2408,122 @@ function resizeVizBars() {
 }
 
 function updateVizBars() {
-  if (!vizBarsCtx) {
-    requestAnimationFrame(updateVizBars);
-    return;
-  }
+  // Prevent multiple loops - if already running, don't start another
+  if (vizBarsRunning) return;
+  vizBarsRunning = true;
 
-  const w = vizBars.width;
-  const h = vizBars.height;
+  function tick() {
+    if (!vizBarsCtx) {
+      requestAnimationFrame(tick);
+      return;
+    }
 
-  if (w === 0 || h === 0) {
-    resizeVizBars();
-    requestAnimationFrame(updateVizBars);
-    return;
-  }
+    const w = vizBars.width;
+    const h = vizBars.height;
 
-  vizBarsCtx.clearRect(0, 0, w, h);
+    if (w === 0 || h === 0) {
+      resizeVizBars();
+      requestAnimationFrame(tick);
+      return;
+    }
 
-  const cx = w / 2;
-  const cy = h * 0.70;
+    vizBarsCtx.clearRect(0, 0, w, h);
 
-  // Get target values - either from audio or zero when paused
-  const targetValues = new Array(numBars).fill(0);
+    const cx = w / 2;
+    const cy = h * 0.70;
 
-  if (isPlaying && analyser && dataArray) {
-    analyser.getByteFrequencyData(dataArray);
+    // Get target values - use actual audio state, not isPlaying flag
+    const targetValues = new Array(numBars).fill(0);
+    const audioActive = !audio.paused && analyser && dataArray;
+
+    if (audioActive) {
+      analyser.getByteFrequencyData(dataArray);
+      for (let i = 0; i < numBars; i++) {
+        const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
+        let val = dataArray[dataIndex] / 255;
+        // Bass boost for lower frequencies (first 40% of bars)
+        if (i < numBars * 0.4) {
+          val = Math.pow(val, 0.7) * 1.4; // Amplify and compress bass
+        }
+        targetValues[i] = Math.min(1, val);
+      }
+    }
+
+    // Smooth interpolation - bars SLAM up, fall slower
     for (let i = 0; i < numBars; i++) {
-      const dataIndex = Math.floor((i / numBars) * (dataArray.length / 2));
-      targetValues[i] = dataArray[dataIndex] / 255;
-    }
-  }
-
-  // Smooth interpolation - bars rise fast, fall slower
-  for (let i = 0; i < numBars; i++) {
-    const target = targetValues[i];
-    const current = smoothedBarValues[i];
-    if (target > current) {
-      // Rise fast
-      smoothedBarValues[i] += (target - current) * 0.3;
-    } else {
-      // Fall slower (smooth decay)
-      smoothedBarValues[i] += (target - current) * 0.08;
-    }
-  }
-
-  // Calculate overall fade factor for smooth disappearance
-  const avgValue = smoothedBarValues.reduce((a, b) => a + b, 0) / numBars;
-
-  // Skip drawing only when completely faded
-  if (avgValue < 0.001) {
-    requestAnimationFrame(updateVizBars);
-    return;
-  }
-
-  // Fade multiplier - kicks in when average drops below 0.15
-  const fadeMult = Math.min(1, avgValue / 0.15);
-
-  const arcStart = -Math.PI;
-  const arcEnd = 0;
-
-  vizBarsCtx.lineCap = 'round';
-  for (let i = 0; i < numBars; i++) {
-    const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
-    const value = smoothedBarValues[i];
-
-    // Scale bar length with fade - shrinks to inner radius as it fades
-    const baseLength = value * 270 + 60;
-    const barLength = 30 + (baseLength - 30) * fadeMult;
-
-    const x1 = cx + Math.cos(angle) * 30;
-    const y1 = cy + Math.sin(angle) * 30;
-    const x2 = cx + Math.cos(angle) * barLength;
-    const y2 = cy + Math.sin(angle) * barLength;
-
-    const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
-    // Full opacity, fades out when paused
-    const opacity = 1.0 * fadeMult;
-
-    // Get color from vizColors array or fall back to accent color
-    const vizColors = tracks[currentTrack]?.vizColors;
-    let barColor;
-
-    if (vizColors && vizColors.length > 0) {
-      // Map bar index to color array - creates gradient across the arc
-      const colorIndex = Math.floor((i / numBars) * vizColors.length);
-      const clampedIndex = Math.min(colorIndex, vizColors.length - 1);
-      barColor = vizColors[clampedIndex];
-    } else {
-      // Fallback to single accent color
-      barColor = tracks[currentTrack]?.accentColor || tracks[currentTrack]?.labelColor || '#c4a35a';
+      const target = targetValues[i];
+      const current = smoothedBarValues[i];
+      if (target > current) {
+        // INSTANT rise - maximum punch
+        smoothedBarValues[i] += (target - current) * 0.6;
+      } else {
+        // Fall slower (smooth decay)
+        smoothedBarValues[i] += (target - current) * 0.1;
+      }
     }
 
-    const rgb = hexToRgb(barColor);
-    vizBarsCtx.strokeStyle = rgb
-      ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
-      : `rgba(196, 163, 90, ${opacity})`;
-    vizBarsCtx.lineWidth = 30;
-    vizBarsCtx.beginPath();
-    vizBarsCtx.moveTo(x1, y1);
-    vizBarsCtx.lineTo(x2, y2);
-    vizBarsCtx.stroke();
+    // Calculate overall fade factor for smooth disappearance
+    const avgValue = smoothedBarValues.reduce((a, b) => a + b, 0) / numBars;
+
+    // Skip drawing only when completely faded
+    if (avgValue < 0.001) {
+      requestAnimationFrame(tick);
+      return;
+    }
+
+    // Fade multiplier - kicks in when average drops below 0.15
+    const fadeMult = Math.min(1, avgValue / 0.15);
+
+    const arcStart = -Math.PI;
+    const arcEnd = 0;
+
+    vizBarsCtx.lineCap = 'round';
+    for (let i = 0; i < numBars; i++) {
+      const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
+      const value = smoothedBarValues[i];
+
+      // Scale bar length with fade - shrinks to inner radius as it fades
+      const baseLength = value * 300 + 60;
+      const barLength = 30 + (baseLength - 30) * fadeMult;
+
+      const x1 = cx + Math.cos(angle) * 30;
+      const y1 = cy + Math.sin(angle) * 30;
+      const x2 = cx + Math.cos(angle) * barLength;
+      const y2 = cy + Math.sin(angle) * barLength;
+
+      const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
+      // Full opacity, fades out when paused
+      const opacity = 1.0 * fadeMult;
+
+      // Get color from vizColors array or fall back to accent color
+      const vizColors = tracks[currentTrack]?.vizColors;
+      let barColor;
+
+      if (vizColors && vizColors.length > 0) {
+        // Map bar index to color array - creates gradient across the arc
+        const colorIndex = Math.floor((i / numBars) * vizColors.length);
+        const clampedIndex = Math.min(colorIndex, vizColors.length - 1);
+        barColor = vizColors[clampedIndex];
+      } else {
+        // Fallback to single accent color
+        barColor = tracks[currentTrack]?.accentColor || tracks[currentTrack]?.labelColor || '#c4a35a';
+      }
+
+      const rgb = hexToRgb(barColor);
+      vizBarsCtx.strokeStyle = rgb
+        ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
+        : `rgba(196, 163, 90, ${opacity})`;
+      vizBarsCtx.lineWidth = 30;
+      vizBarsCtx.beginPath();
+      vizBarsCtx.moveTo(x1, y1);
+      vizBarsCtx.lineTo(x2, y2);
+      vizBarsCtx.stroke();
+    }
+
+    requestAnimationFrame(tick);
   }
 
-  requestAnimationFrame(updateVizBars);
+  tick();
 }
 
 // ============================================
@@ -2405,7 +2799,7 @@ function hexToRgb(hex) {
     r: parseInt(result[1], 16),
     g: parseInt(result[2], 16),
     b: parseInt(result[3], 16)
-  } : null;
+  } : { r: 255, g: 255, b: 255 }; // Fallback to white
 }
 
 function loadTrack(index) {
@@ -2944,6 +3338,9 @@ document.addEventListener('keydown', (e) => {
 // ============================================
 // INIT
 // ============================================
+// Initialize loader first
+initLoader();
+
 initThree();
 initAurora();
 initAsciiShader();

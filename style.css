@@ -76,8 +76,14 @@ body {
   align-items: center;
   gap: 6px;
   opacity: 0;
-  animation: fadeIn 0.5s ease forwards;
-  animation-delay: 0.2s;
+  transform: translateY(-20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+body.loaded .site-header {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0s;
 }
 
 .credit-by {
@@ -149,7 +155,14 @@ body.playing .album-atmosphere {
   gap: 8px 48px;
   padding-top: 24px;
   opacity: 0;
-  animation: fadeIn 0.5s ease forwards;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.loaded .track-header {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.05s;
 }
 
 .track-meta {
@@ -241,10 +254,16 @@ body.playing .album-atmosphere {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  animation: fadeIn 0.5s ease forwards;
-  animation-delay: 0.1s;
+  transform: scale(0.9);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: visible;
   min-height: 300px;
+}
+
+body.loaded .vinyl-stage {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 0.15s;
 }
 
 .vinyl-stage #vinyl-canvas {
@@ -275,8 +294,14 @@ body.playing .album-atmosphere {
   flex-direction: column;
   gap: 24px;
   opacity: 0;
-  animation: fadeIn 0.5s ease forwards;
-  animation-delay: 0.2s;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.loaded .player-footer {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.25s;
 }
 
 /* ============================================
@@ -1376,5 +1401,116 @@ body.playing .menu-player-btn .menu-icon-pause {
     width: calc(100vw - 64px);
     max-height: 55vh;
     border-radius: 18px;
+  }
+}
+
+/* ============================================
+   LOADER - THE NEEDLE DROP
+   ============================================ */
+.loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 10000;
+  display: flex;
+  pointer-events: none;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.loader-overlay.hidden {
+  display: none;
+}
+
+.loader-overlay #loader-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.loader-skip {
+  position: absolute;
+  bottom: 48px;
+  right: 48px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  z-index: 10001;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.loader-skip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.loader-skip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loader-skip:active {
+  transform: scale(0.95);
+}
+
+/* Screen shake animation for impact */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-8px, -6px); }
+  20% { transform: translate(8px, 4px); }
+  30% { transform: translate(-6px, 6px); }
+  40% { transform: translate(6px, -4px); }
+  50% { transform: translate(-4px, 4px); }
+  60% { transform: translate(4px, -2px); }
+  70% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -1px); }
+  90% { transform: translate(-1px, 1px); }
+}
+
+.loader-overlay.shake {
+  animation: screenShake 0.4s ease-out;
+}
+
+/* Impact flash */
+.loader-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.05s ease;
+}
+
+.loader-overlay.flash::after {
+  opacity: 0.8;
+}
+
+@media (max-width: 900px) {
+  .loader-skip {
+    bottom: 32px;
+    right: 32px;
+    padding: 8px 20px;
+    font-size: 12px;
   }
 }
