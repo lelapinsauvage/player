@@ -264,7 +264,7 @@ body.playing .album-atmosphere {
   transform: translate(-50%, -50%) scale(0.5);
   z-index: 1;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* ============================================

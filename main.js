@@ -34,7 +34,26 @@ const tracks = [
       highReactivity: 0.5,
       fresnelPower: 2.0,
       opacity: 0.9
-    }
+    },
+    // Visualizer colors - fire gradient: bass=red → mids=gold → highs=white
+    vizColors: [
+      '#8b0000',  // Deep blood red (lowest bass)
+      '#b71c1c',  // Dark red
+      '#d32f2f',  // Red
+      '#e53935',  // Bright red
+      '#ff5722',  // Fire orange
+      '#ff6f00',  // Deep orange
+      '#ff8f00',  // Amber
+      '#ffa000',  // Orange amber
+      '#ffb300',  // Gold amber
+      '#ffc107',  // Gold
+      '#ffd54f',  // Light gold
+      '#ffe082',  // Pale gold
+      '#ffecb3',  // Cream gold
+      '#fff3e0',  // Warm white
+      '#fff8e1',  // Off white
+      '#ffffff'   // Pure white (highest highs)
+    ]
   },
   {
     title: 'All The <em>Stars</em>',
@@ -64,7 +83,26 @@ const tracks = [
       highReactivity: 0.6,
       fresnelPower: 2.2,
       opacity: 0.85
-    }
+    },
+    // Visualizer: cosmic gold gradient - warm bronze to brilliant gold to starlight
+    vizColors: [
+      '#1a1207',  // Deep cosmic brown
+      '#2d2010',  // Dark bronze
+      '#4a3520',  // Bronze
+      '#6b4d2a',  // Warm bronze
+      '#8b6914',  // Antique gold
+      '#a67c00',  // Dark gold
+      '#c9a227',  // Gold
+      '#d4af37',  // Rich gold
+      '#e6c34d',  // Bright gold
+      '#f0d264',  // Light gold
+      '#f5dc7a',  // Pale gold
+      '#fae890',  // Cream gold
+      '#fff4b8',  // Star white
+      '#fffacd',  // Lemon chiffon
+      '#fffef0',  // Near white
+      '#ffffff'   // Pure starlight
+    ]
   },
   {
     title: '<em>Juicy</em>',
@@ -94,7 +132,26 @@ const tracks = [
       highReactivity: 0.4,
       fresnelPower: 2.5,
       opacity: 0.85
-    }
+    },
+    // Visualizer: 90s Brooklyn luxury - deep purple → violet → pink → champagne
+    vizColors: [
+      '#2e0854',  // Deep royal purple
+      '#4a0e78',  // Rich purple
+      '#6a1b9a',  // Purple
+      '#8e24aa',  // Bright purple
+      '#ab47bc',  // Orchid
+      '#ba68c8',  // Light purple
+      '#ce93d8',  // Lavender
+      '#d8a9e0',  // Pink lavender
+      '#e1bee7',  // Pale pink
+      '#f3e5f5',  // Near white pink
+      '#f8e8d4',  // Champagne
+      '#ffe4b5',  // Moccasin
+      '#ffd700',  // Gold flash
+      '#ffec8b',  // Light gold
+      '#fff8dc',  // Cornsilk
+      '#ffffff'   // Pure white
+    ]
   },
   {
     title: '<em>HUMBLE.</em>',
@@ -125,7 +182,26 @@ const tracks = [
       highReactivity: 0.7,
       fresnelPower: 1.8,
       opacity: 1.0
-    }
+    },
+    // Visualizer: DAMN. stark brutality - black → blood red → hot red → white flash
+    vizColors: [
+      '#0a0a0a',  // Near black
+      '#1a0000',  // Darkest red
+      '#330000',  // Deep blood
+      '#4d0000',  // Blood red
+      '#6b0000',  // Dark crimson
+      '#8b0000',  // Crimson
+      '#a31515',  // Red
+      '#c41e1e',  // Bright red
+      '#e02020',  // Hot red
+      '#ff1744',  // Neon red
+      '#ff4569',  // Pink red
+      '#ff6b8a',  // Light red
+      '#ff99aa',  // Pale red
+      '#ffcccc',  // Near white red
+      '#fff0f0',  // Off white
+      '#ffffff'   // Pure white flash
+    ]
   },
   {
     title: 'Lucid <em>Dreams</em>',
@@ -155,7 +231,26 @@ const tracks = [
       highReactivity: 0.5,
       fresnelPower: 2.4,
       opacity: 0.8
-    }
+    },
+    // Visualizer: dreamscape - midnight blue → purple → lavender → pink → soft white
+    vizColors: [
+      '#0d1b2a',  // Midnight blue
+      '#1b263b',  // Dark blue
+      '#2c2a4a',  // Blue purple
+      '#3d2c5e',  // Deep purple
+      '#4e3d72',  // Purple
+      '#5e4d82',  // Medium purple
+      '#7b1fa2',  // Violet
+      '#9c27b0',  // Bright violet
+      '#ba68c8',  // Orchid
+      '#ce93d8',  // Light purple
+      '#e1bee7',  // Lavender
+      '#f3e5f5',  // Pale lavender
+      '#fce4ec',  // Pink tint
+      '#fff0f5',  // Lavender blush
+      '#fff8fa',  // Near white
+      '#ffffff'   // Soft white
+    ]
   },
   {
     title: 'Blinding <em>Lights</em>',
@@ -186,7 +281,26 @@ const tracks = [
       highReactivity: 0.8,
       fresnelPower: 2.5,
       opacity: 0.95
-    }
+    },
+    // Visualizer: 80s synthwave neon - magenta → hot pink → red → orange → yellow
+    vizColors: [
+      '#2d0036',  // Deep magenta
+      '#4a0052',  // Dark magenta
+      '#6a0dad',  // Purple
+      '#9400d3',  // Dark violet
+      '#c71585',  // Medium violet red
+      '#e80b76',  // Hot pink
+      '#ff1493',  // Deep pink
+      '#ff2770',  // Neon pink
+      '#ff1744',  // Neon red
+      '#ff4500',  // Orange red
+      '#ff6600',  // Bright orange
+      '#ff8c00',  // Dark orange
+      '#ffb300',  // Amber
+      '#ffd000',  // Gold
+      '#ffea00',  // Yellow
+      '#ffff66'   // Neon yellow
+    ]
   },
   {
     title: 'SICKO <em>MODE</em>',
@@ -216,7 +330,26 @@ const tracks = [
       highReactivity: 0.6,
       fresnelPower: 2.0,
       opacity: 0.9
-    }
+    },
+    // Visualizer: Astroworld psychedelic - earth → orange → gold → yellow → electric
+    vizColors: [
+      '#1a0f00',  // Deep earth
+      '#2d1a00',  // Dark brown
+      '#4a2800',  // Brown
+      '#6b3a00',  // Rust
+      '#8b4513',  // Saddle brown
+      '#a0522d',  // Sienna
+      '#cd6600',  // Burnt orange
+      '#d4a84b',  // Astroworld gold
+      '#e8b94a',  // Gold
+      '#f4c430',  // Saffron
+      '#ffd700',  // Gold
+      '#ffdf00',  // Bright yellow
+      '#ffea00',  // Yellow
+      '#bfff00',  // Lime flash
+      '#7fff00',  // Chartreuse
+      '#39ff14'   // Neon green flash
+    ]
   },
   {
     title: '<em>Congratulations</em>',
@@ -246,7 +379,26 @@ const tracks = [
       highReactivity: 0.4,
       fresnelPower: 2.5,
       opacity: 0.82
-    }
+    },
+    // Visualizer: victory celebration - bronze → copper → gold → champagne → cream
+    vizColors: [
+      '#3d2314',  // Deep bronze
+      '#4a2c17',  // Dark bronze
+      '#5c3a21',  // Bronze
+      '#6b4423',  // Brown bronze
+      '#8b5a2b',  // Copper brown
+      '#a0522d',  // Sienna
+      '#b87333',  // Copper
+      '#cd7f32',  // Bronze medal
+      '#d4a84b',  // Old gold
+      '#daa520',  // Goldenrod
+      '#e6be8a',  // Pale gold
+      '#f0d58c',  // Champagne gold
+      '#f5deb3',  // Wheat
+      '#faebd7',  // Antique white
+      '#fff8dc',  // Cornsilk
+      '#fffaf0'   // Floral white
+    ]
   }
 ];
 
@@ -323,7 +475,7 @@ const targetRotation = { x: 0, y: 0 };
 const currentRotation = { x: 0, y: 0 };
 
 // Vinyl positions - on turntable vs off (initial state)
-const vinylOnPosition = { x: -18, y: 33.5, z: 46 };
+const vinylOnPosition = { x: -17, y: 34.8, z: 42 };
 const vinylOffPosition = { x: -18, y: 120, z: 46 }; // Directly above turntable
 const vinylPosition = { ...vinylOnPosition }; // Start ON turntable
 let vinylAnimating = false;
@@ -911,6 +1063,18 @@ function animate() {
     // Spin at current speed (controlled by play/pause)
     vinyl.rotation.y += vinylSpinSpeed;
 
+    // Vinyl wobble - subtle imperfection when spinning (real vinyl isn't perfectly flat)
+    if (vinylSpinSpeed > 0.001) {
+      const wobbleAmount = 0.002;
+      const wobbleSpeed = time * 2.5;
+      vinyl.rotation.x = Math.sin(wobbleSpeed) * wobbleAmount * (vinylSpinSpeed / 0.025);
+      vinyl.rotation.z = Math.cos(wobbleSpeed * 0.7) * wobbleAmount * 0.5 * (vinylSpinSpeed / 0.025);
+    } else {
+      // Settle back to flat when stopped
+      vinyl.rotation.x *= 0.92;
+      vinyl.rotation.z *= 0.92;
+    }
+
     // Update tonearm position when playing
     if (isPlaying && audio.duration && tonearm && !tonearmAnimating) {
       const songProgress = audio.currentTime / audio.duration;
@@ -927,6 +1091,7 @@ function animate() {
     }
   }
 
+  // Speaker bounce animation - reacts to bass
   renderer.render(scene, camera);
 }
 
@@ -1135,8 +1300,8 @@ function initAurora() {
       vec3 desaturated = mix(vec3(grey), color, 0.6);
       color = mix(desaturated, color, u_playing);
 
-      // Slightly dimmer when paused
-      float alpha = mix(0.1, 0.12 + u_bass * 0.03, u_playing);
+      // Hide clouds while playing, show when paused
+      float alpha = mix(0.12, 0.0, u_playing);
 
       gl_FragColor = vec4(color, alpha);
     }
@@ -1621,66 +1786,73 @@ const asciiFragmentShader = `
   }
 
   void main() {
-    vec2 cellSize = vec2(u_cellSize * 0.6, u_cellSize); // Aspect ratio for chars
+    vec2 cellSize = vec2(u_cellSize * 0.6, u_cellSize);
+
+    float bassIntensity = u_bass * u_bass * 4.0;
+
     vec2 cell = floor(gl_FragCoord.xy / cellSize);
     vec2 cellUV = cell * cellSize / u_resolution;
 
     // Cover-style UV calculation with extra zoom to crop black borders
     float screenAspect = u_resolution.x / u_resolution.y;
     float videoAspect = u_videoSize.x / u_videoSize.y;
-    float zoom = 1.4; // Zoom in to crop black borders from video
+    float zoom = 1.4;
 
     vec2 coverUV = cellUV;
     if (screenAspect > videoAspect) {
-      // Screen is wider - scale by width, crop top/bottom
       float scale = screenAspect / videoAspect * zoom;
       coverUV.y = (cellUV.y - 0.5) / scale + 0.5;
       coverUV.x = (cellUV.x - 0.5) / zoom + 0.5;
     } else {
-      // Screen is taller - scale by height, crop sides
       float scale = videoAspect / screenAspect * zoom;
       coverUV.x = (cellUV.x - 0.5) / scale + 0.5;
       coverUV.y = (cellUV.y - 0.5) / zoom + 0.5;
     }
 
-    // Sample center of cell (flip Y for correct orientation)
     vec2 flippedUV = vec2(coverUV.x, 1.0 - coverUV.y);
-    vec4 texColor = texture2D(u_texture, flippedUV);
 
-    // Calculate brightness
+    // === RGB SPLIT on bass ===
+    float rgbSplit = bassIntensity * 0.015; // More visible split
+    vec4 texColorR = texture2D(u_texture, flippedUV + vec2(rgbSplit, 0.0));
+    vec4 texColorG = texture2D(u_texture, flippedUV);
+    vec4 texColorB = texture2D(u_texture, flippedUV - vec2(rgbSplit, 0.0));
+    vec4 texColor = vec4(texColorR.r, texColorG.g, texColorB.b, 1.0);
+
     float brightness = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
 
-    // Map brightness to character index (0-9)
     int charIndex = int(brightness * 9.99);
 
-    // Position within character grid
     vec2 posInCell = mod(gl_FragCoord.xy, cellSize);
     vec2 charPos = posInCell / cellSize * vec2(5.0, 7.0);
-
-    // Get character pixel
     float charPixel = getChar(charIndex, floor(charPos));
 
-    // Audio-reactive intensity
-    float bassBoost = 1.0 + u_bass * 0.8;
-    float highBoost = 1.0 + u_high * 0.3;
+    // === HIGH FREQUENCY SHARPENING ===
+    float sharpening = 1.0 + u_high * 0.4;
+    brightness = pow(brightness, 1.0 / sharpening);
 
-    // Compress bright areas (clouds) - keeps darks visible, tames highlights
-    float compressedBrightness = pow(brightness, 1.5); // Darkens bright areas more than dark areas
-
-    // Clamp maximum brightness to prevent blown-out clouds
-    float maxBrightness = mix(0.35, 0.5, u_playing); // Lower max when paused
+    // Compress bright areas
+    float compressedBrightness = pow(brightness, 1.5);
+    float maxBrightness = mix(0.35, 0.5, u_playing);
     compressedBrightness = min(compressedBrightness, maxBrightness);
 
-    // Output color - pulses with bass
-    vec3 bgColor = vec3(0.0);
-    vec3 finalColor = mix(bgColor, u_color, charPixel * compressedBrightness * 0.9 * bassBoost);
+    // === QUIET FADE ===
+    float audioLevel = u_bass + u_high;
+    float quietFade = smoothstep(0.0, 0.5, audioLevel);
+    quietFade = max(quietFade, 0.2); // Never fully disappear
+    quietFade = mix(0.5, quietFade, u_playing); // Dimmer when paused
 
-    // Add subtle glow that reacts to audio
-    finalColor += u_color * compressedBrightness * 0.1 * highBoost;
+    // Output color with bass boost
+    float bassBoost = 1.0 + u_bass * 0.6;
+    vec3 finalColor = u_color * charPixel * compressedBrightness * bassBoost;
 
-    // Opacity
-    float alpha = charPixel > 0.5 ? 0.9 : compressedBrightness * 0.25;
-    alpha *= (0.8 + u_bass * 0.2);
+    // Glow on highs
+    finalColor += u_color * compressedBrightness * 0.12 * (1.0 + u_high);
+
+    float alpha = charPixel > 0.5 ? 0.92 : compressedBrightness * 0.2;
+    alpha *= quietFade;
+
+    // Show ASCII effect while playing, hide when paused
+    alpha *= u_playing;
 
     gl_FragColor = vec4(finalColor, alpha);
   }
@@ -1776,6 +1948,8 @@ function updateAsciiShader() {
     high = high / 40 / 255;
     asciiBass += (bass - asciiBass) * 0.15;
     asciiHigh += (high - asciiHigh) * 0.2;
+    // Debug: log bass values occasionally
+    if (Math.random() < 0.01) console.log('ASCII Bass:', asciiBass.toFixed(2), 'High:', asciiHigh.toFixed(2));
   } else {
     asciiBass *= 0.9;
     asciiHigh *= 0.9;
@@ -1871,7 +2045,7 @@ function updateVizBars() {
   vizBarsCtx.clearRect(0, 0, w, h);
 
   const cx = w / 2;
-  const cy = h * 0.65;
+  const cy = h * 0.70;
 
   // Get target values - either from audio or zero when paused
   const targetValues = new Array(numBars).fill(0);
@@ -1927,12 +2101,24 @@ function updateVizBars() {
     const y2 = cy + Math.sin(angle) * barLength;
 
     const centerDist = Math.abs(i - numBars / 2) / (numBars / 2);
-    // Scale opacity with fade - goes to 0 as it disappears
-    const baseOpacity = 0.4 + value * 0.5 - centerDist * 0.1;
-    const opacity = baseOpacity * fadeMult;
+    // Full opacity, fades out when paused
+    const opacity = 1.0 * fadeMult;
 
-    const accent = tracks[currentTrack]?.accentColor || tracks[currentTrack]?.labelColor;
-    const rgb = hexToRgb(accent);
+    // Get color from vizColors array or fall back to accent color
+    const vizColors = tracks[currentTrack]?.vizColors;
+    let barColor;
+
+    if (vizColors && vizColors.length > 0) {
+      // Map bar index to color array - creates gradient across the arc
+      const colorIndex = Math.floor((i / numBars) * vizColors.length);
+      const clampedIndex = Math.min(colorIndex, vizColors.length - 1);
+      barColor = vizColors[clampedIndex];
+    } else {
+      // Fallback to single accent color
+      barColor = tracks[currentTrack]?.accentColor || tracks[currentTrack]?.labelColor || '#c4a35a';
+    }
+
+    const rgb = hexToRgb(barColor);
     vizBarsCtx.strokeStyle = rgb
       ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
       : `rgba(196, 163, 90, ${opacity})`;
@@ -2053,6 +2239,61 @@ function animateTonearm(playing) {
   tick();
 }
 
+// Tonearm with bounce when needle lands on record
+function animateTonearmWithBounce(playing) {
+  if (!tonearm) return;
+  tonearmAnimating = true;
+  const duration = 600;
+  const bounceDuration = 200;
+  const start = performance.now();
+  const startRot = tonearm.rotation.y;
+  const startPosX = tonearm.position.x;
+  const startPosZ = tonearm.position.z;
+  const startPosY = tonearm.position.y;
+
+  const targetRot = playing
+    ? tonearm.userData.startRotation.y + tonearmSettings.startRotY
+    : tonearm.userData.startRotation.y + tonearmSettings.restRotY;
+  const targetPosX = playing
+    ? tonearm.userData.startPosition.x + tonearmSettings.startPosX
+    : tonearm.userData.startPosition.x + tonearmSettings.restPosX;
+  const targetPosZ = playing
+    ? tonearm.userData.startPosition.z + tonearmSettings.startPosZ
+    : tonearm.userData.startPosition.z + tonearmSettings.restPosZ;
+
+  function tick() {
+    const elapsed = performance.now() - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    tonearm.rotation.y = startRot + (targetRot - startRot) * eased;
+    tonearm.position.x = startPosX + (targetPosX - startPosX) * eased;
+    tonearm.position.z = startPosZ + (targetPosZ - startPosZ) * eased;
+
+    // Bounce effect when landing (only when playing)
+    if (playing && progress >= 1) {
+      const bounceElapsed = elapsed - duration;
+      if (bounceElapsed < bounceDuration) {
+        const bounceProgress = bounceElapsed / bounceDuration;
+        // Damped spring bounce
+        const bounce = Math.sin(bounceProgress * Math.PI * 3) * Math.exp(-bounceProgress * 4) * 2;
+        tonearm.position.y = startPosY + bounce;
+      } else {
+        tonearm.position.y = startPosY;
+        tonearmAnimating = false;
+        return;
+      }
+    }
+
+    if (progress < 1 || (playing && (elapsed - duration) < bounceDuration)) {
+      requestAnimationFrame(tick);
+    } else {
+      tonearmAnimating = false;
+    }
+  }
+  tick();
+}
+
 function animateVinylSpeed(from, to, duration) {
   const start = performance.now();
   function tick(time) {
@@ -2133,19 +2374,22 @@ function togglePlay() {
     isPlaying = false;
     audio.pause();
     document.body.classList.remove('playing');
-    // Just decelerate vinyl - tonearm stays
-    animateVinylSpeed(0.025, 0, 400);
+    // Slow, heavy drag to halt (like motor cutting off) - 1.2 seconds
+    animateVinylSpeed(0.025, 0, 1200);
+    // Move tonearm back to rest position
+    animateTonearm(false);
+    tonearmInPosition = false;
     stopStoryReveal();
     syncAsciiBg();
   } else {
     isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
-    // Accelerate vinyl back to speed
-    animateVinylSpeed(0, 0.025, 400);
+    // Faster spin-up (motor engaging)
+    animateVinylSpeed(0, 0.025, 500);
     // Only animate tonearm if it's not already in position
     if (!tonearmInPosition) {
-      animateTonearm(true);
+      animateTonearmWithBounce(true);
       tonearmInPosition = true;
     }
     updateSoundReactive();
@@ -2243,12 +2487,41 @@ function loadTrack(index) {
 let isTransitioning = false;
 const trackHeader = document.getElementById('track-header');
 
+// Tape stop effect - slows down audio with pitch drop
+function tapeStop(duration = 300) {
+  return new Promise(resolve => {
+    const startTime = performance.now();
+    const startRate = audio.playbackRate;
+
+    function tick() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Exponential slowdown for realistic tape stop feel
+      audio.playbackRate = startRate * Math.pow(1 - progress, 2);
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        audio.pause();
+        audio.playbackRate = 1; // Reset for next track
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
 async function transitionToTrack(newIndex) {
   if (isTransitioning || newIndex === currentTrack) return;
   isTransitioning = true;
 
   // Remember if we were playing
   const wasPlaying = isPlaying;
+
+  // Tape stop effect if currently playing
+  if (wasPlaying && !audio.paused) {
+    tapeStop(250);
+  }
 
   // Phase 1: EXIT - text slides out + vinyl speeds up (in parallel)
   if (trackHeader) trackHeader.classList.add('exit');
@@ -2680,3 +2953,4 @@ loadTrack(0);
 
 // Start aurora animation loop
 requestAnimationFrame(updateAurora);
+
