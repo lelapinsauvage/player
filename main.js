@@ -22,7 +22,7 @@ const tracks = [
     sample: 'Original',
     cover: 'covers/notlikeus.jpg',
     // Original video for ASCII shader
-    asciiBg: 'videos/not-like-us.mp4',
+    asciiBg: 'videos/not-like-us.mp4?v=3',
     // Soul parameters - aggressive, triumphant
     soul: {
       colorA: [0.83, 0.18, 0.18],    // Red
@@ -71,7 +71,7 @@ const tracks = [
     location: 'TDE Studios, Los Angeles',
     sample: 'Original',
     cover: 'covers/blackpanther.jpg',
-    asciiBg: 'videos/all-the-stars.mp4',
+    asciiBg: 'videos/all-the-stars.mp4?v=2',
     // Soul parameters - cosmic, golden, triumphant
     soul: {
       colorA: [0.79, 0.64, 0.15],    // Gold
@@ -120,7 +120,7 @@ const tracks = [
     location: 'The Hit Factory, NYC',
     sample: '"Juicy Fruit" by Mtume',
     cover: 'covers/readytodie.jpg',
-    asciiBg: 'videos/juicy.mp4',
+    asciiBg: 'videos/juicy.mp4?v=2',
     // Soul parameters - celebratory, nostalgic, triumphant
     soul: {
       colorA: [0.56, 0.14, 0.67],    // Purple
@@ -170,7 +170,7 @@ const tracks = [
     sample: 'Original Composition',
     cover: 'covers/damn.jpg',
     // Original video for ASCII shader
-    asciiBg: 'videos/humble.mp4',
+    asciiBg: 'videos/humble.mp4?v=2',
     // Soul parameters - aggressive, hard-hitting, sharp
     soul: {
       colorA: [0.77, 0.12, 0.12],    // Deep red
@@ -219,7 +219,7 @@ const tracks = [
     location: 'Los Angeles, CA',
     sample: '"Shape of My Heart" by Sting',
     cover: 'covers/gbgr.jpg',
-    asciiBg: 'videos/lucid-dreams.mp4',
+    asciiBg: 'videos/lucid-dreams.mp4?v=2',
     // Soul parameters - dreamy, melancholic, purple haze
     soul: {
       colorA: [0.48, 0.12, 0.64],    // Deep purple
@@ -269,7 +269,7 @@ const tracks = [
     sample: 'Original Composition',
     cover: 'covers/afterhours.jpg',
     // Original video for ASCII shader
-    asciiBg: 'videos/blinding-lights.mp4',
+    asciiBg: 'videos/blinding-lights.mp4?v=2',
     // Soul parameters - 80s synth, neon, pulsing
     soul: {
       colorA: [0.91, 0.04, 0.04],    // Neon red
@@ -318,7 +318,7 @@ const tracks = [
     location: 'Record Plant, Los Angeles',
     sample: '"Like a Light" by Big Hawk',
     cover: 'covers/astroworld.jpg',
-    asciiBg: 'videos/sicko-mode.mp4',
+    asciiBg: 'videos/sicko-mode.mp4?v=2',
     // Soul parameters - psychedelic, shifting, multiple modes
     soul: {
       colorA: [0.83, 0.66, 0.29],    // Astroworld gold
@@ -367,7 +367,7 @@ const tracks = [
     location: 'Republic Studios, Los Angeles',
     sample: 'Original Composition',
     cover: 'covers/stoney.jpg',
-    asciiBg: 'videos/congratulations.mp4',
+    asciiBg: 'videos/congratulations.mp4?v=2',
     // Soul parameters - celebratory, warm, victorious
     soul: {
       colorA: [0.55, 0.45, 0.33],    // Warm brown
