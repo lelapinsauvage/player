@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 :root {
   --bg: #000000;
   --white: #ffffff;
@@ -31,7 +35,8 @@ body {
   background: var(--bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--white);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -116,6 +121,7 @@ body.loaded .site-header {
   flex-direction: column;
   min-height: 100vh;
   padding: 48px;
+  overflow: visible;
 }
 
 /* ============================================
@@ -296,6 +302,7 @@ body.loaded .vinyl-stage {
   opacity: 0;
   transform: translateY(40px);
   transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
 }
 
 body.loaded .player-footer {
@@ -314,6 +321,7 @@ body.loaded .player-footer {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow: visible;
 }
 
 .progress-wrapper {
@@ -323,6 +331,7 @@ body.loaded .player-footer {
   display: flex;
   align-items: flex-end;
   cursor: pointer;
+  overflow: visible;
 }
 
 /* Waveform canvas - Magnetic Pulse */
@@ -444,6 +453,7 @@ body.loaded .player-footer {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: visible;
 }
 
 .control-row .now-playing-btn {

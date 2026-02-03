@@ -2542,9 +2542,13 @@ function initVizBars() {
 }
 
 function resizeVizBars() {
-  if (!vizBars || !vizBars.parentElement) return;
-  vizBars.width = vizBars.parentElement.clientWidth;
-  vizBars.height = vizBars.parentElement.clientHeight;
+  if (!vizBars) return;
+  // Make canvas large enough for the full arc - not constrained by parent
+  const size = Math.max(window.innerWidth, window.innerHeight) * 1.5;
+  vizBars.width = size;
+  vizBars.height = size;
+  vizBars.style.width = size + 'px';
+  vizBars.style.height = size + 'px';
 }
 
 function updateVizBars() {
@@ -2570,7 +2574,7 @@ function updateVizBars() {
     vizBarsCtx.clearRect(0, 0, w, h);
 
     const cx = w / 2;
-    const cy = h * 0.70;
+    const cy = h * 0.58; // Center point for arc - positioned so arc sits above vinyl
 
     // Get target values - use actual audio state, not isPlaying flag
     const targetValues = new Array(numBars).fill(0);
@@ -2617,6 +2621,10 @@ function updateVizBars() {
     const arcStart = -Math.PI;
     const arcEnd = 0;
 
+    // Fixed dimensions - matches original style
+    const innerRadius = 30;
+    const barWidth = 30;
+
     vizBarsCtx.lineCap = 'round';
     for (let i = 0; i < numBars; i++) {
       const angle = arcStart + (i / (numBars - 1)) * (arcEnd - arcStart);
@@ -2624,10 +2632,10 @@ function updateVizBars() {
 
       // Scale bar length with fade - shrinks to inner radius as it fades
       const baseLength = value * 300 + 60;
-      const barLength = 30 + (baseLength - 30) * fadeMult;
+      const barLength = innerRadius + (baseLength - innerRadius) * fadeMult;
 
-      const x1 = cx + Math.cos(angle) * 30;
-      const y1 = cy + Math.sin(angle) * 30;
+      const x1 = cx + Math.cos(angle) * innerRadius;
+      const y1 = cy + Math.sin(angle) * innerRadius;
       const x2 = cx + Math.cos(angle) * barLength;
       const y2 = cy + Math.sin(angle) * barLength;
 
@@ -2653,7 +2661,7 @@ function updateVizBars() {
       vizBarsCtx.strokeStyle = rgb
         ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
         : `rgba(196, 163, 90, ${opacity})`;
-      vizBarsCtx.lineWidth = 30;
+      vizBarsCtx.lineWidth = barWidth;
       vizBarsCtx.beginPath();
       vizBarsCtx.moveTo(x1, y1);
       vizBarsCtx.lineTo(x2, y2);
