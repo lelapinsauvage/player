@@ -2838,11 +2838,11 @@ function renderWaveform() {
   const isHovering = waveformHoverX >= 0;
   const cursorT = isHovering ? waveformHoverX / w : -1;
 
-  // Physics constants
-  const MAGNETIC_STRENGTH = 25;
-  const MAGNETIC_RADIUS = 0.15;
-  const SPRING = 0.15;
-  const DAMPING = 0.75;
+  // Physics constants - editorial feel: subtle, precise
+  const MAGNETIC_STRENGTH = 6;
+  const MAGNETIC_RADIUS = 0.08;
+  const SPRING = 0.25;
+  const DAMPING = 0.65;
 
   // Update ripples
   for (let i = ripples.length - 1; i >= 0; i--) {
@@ -2867,22 +2867,9 @@ function renderWaveform() {
     }
   }
 
-  // Draw glow field under cursor
-  if (isHovering) {
-    const gradient = waveformCtx.createRadialGradient(
-      waveformHoverX, baseY - 20, 0,
-      waveformHoverX, baseY - 20, 80
-    );
-    gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`);
-    gradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)`);
-    gradient.addColorStop(1, 'transparent');
-    waveformCtx.fillStyle = gradient;
-    waveformCtx.fillRect(waveformHoverX - 100, 0, 200, h);
-  }
-
   // Draw ripples
   for (const r of ripples) {
-    waveformCtx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${r.alpha * 0.5})`;
+    waveformCtx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${r.alpha * 0.4})`;
     waveformCtx.lineWidth = 2;
     waveformCtx.beginPath();
     waveformCtx.arc(r.x, baseY - 20, r.radius, 0, Math.PI * 2);
@@ -2895,33 +2882,32 @@ function renderWaveform() {
     const t = i / samples;
     const x = i * barWidth + barWidth / 2;
 
-    // Magnetic force from cursor
+    // Cursor proximity - subtle brightness shift, minimal movement
     let magneticY = 0;
     let magneticScale = 1;
     if (isHovering) {
       const dist = Math.abs(t - cursorT);
       if (dist < MAGNETIC_RADIUS) {
         const force = 1 - (dist / MAGNETIC_RADIUS);
-        const eased = force * force * force; // Cubic ease for smooth falloff
+        const eased = force * force; // Quadratic - smoother
         magneticY = -eased * MAGNETIC_STRENGTH;
-        magneticScale = 1 + eased * 0.4;
+        magneticScale = 1 + eased * 0.15; // Very subtle scale
         bar.glow = Math.max(bar.glow, eased);
       }
     }
 
-    // Ripple force
+    // Ripple force - subtle
     for (const r of ripples) {
       const barX = x;
       const rippleDist = Math.abs(barX - r.x);
-      if (rippleDist < r.radius + 30 && rippleDist > r.radius - 30) {
-        const force = (1 - Math.abs(rippleDist - r.radius) / 30) * r.alpha;
-        magneticY -= force * 15;
-        magneticScale += force * 0.2;
+      if (rippleDist < r.radius + 20 && rippleDist > r.radius - 20) {
+        const force = (1 - Math.abs(rippleDist - r.radius) / 20) * r.alpha;
+        magneticY -= force * 4;
       }
     }
 
-    // Audio pulse
-    const audioPulse = isPlaying ? (bass * 0.3 + high * 0.1) : 0;
+    // Audio pulse - very subtle
+    const audioPulse = isPlaying ? (bass * 0.1) : 0;
 
     // Spring physics for Y
     const targetY = magneticY;
@@ -2947,77 +2933,40 @@ function renderWaveform() {
 
     // Color based on progress
     const isPast = t <= progress;
-    let alpha, r_col, g_col, b_col;
 
+    let alpha;
     if (isPast) {
-      // Played: full accent color
-      r_col = rgb.r;
-      g_col = rgb.g;
-      b_col = rgb.b;
       alpha = 0.95;
     } else {
-      // Unplayed: desaturated/dim
-      r_col = Math.round(rgb.r * 0.4 + 100);
-      g_col = Math.round(rgb.g * 0.4 + 100);
-      b_col = Math.round(rgb.b * 0.4 + 100);
-      alpha = 0.4;
+      alpha = 0.25 + bar.glow * 0.7;
     }
 
-    // Boost alpha and color near cursor
-    if (bar.glow > 0.01) {
-      alpha = Math.min(1, alpha + bar.glow * 0.5);
-      if (!isPast) {
-        // Unplayed bars get accent tint on hover
-        r_col = Math.round(r_col + (rgb.r - r_col) * bar.glow * 0.7);
-        g_col = Math.round(g_col + (rgb.g - g_col) * bar.glow * 0.7);
-        b_col = Math.round(b_col + (rgb.b - b_col) * bar.glow * 0.7);
+    // Draw solid bar
+    if (barHeight > 2) {
+      if (isPast) {
+        waveformCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+      } else {
+        // Desaturated for unplayed
+        const desatR = Math.round(rgb.r * 0.4 + 120);
+        const desatG = Math.round(rgb.g * 0.4 + 120);
+        const desatB = Math.round(rgb.b * 0.4 + 120);
+        // Mix toward accent on hover
+        const finalR = Math.round(desatR + (rgb.r - desatR) * bar.glow);
+        const finalG = Math.round(desatG + (rgb.g - desatG) * bar.glow);
+        const finalB = Math.round(desatB + (rgb.b - desatB) * bar.glow);
+        waveformCtx.fillStyle = `rgba(${finalR}, ${finalG}, ${finalB}, ${alpha})`;
       }
-    }
-
-    // Draw glow layer
-    if (bar.glow > 0.1 || (isPast && isPlaying)) {
-      const glowAlpha = Math.max(bar.glow * 0.4, isPast && isPlaying ? 0.15 : 0);
-      waveformCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${glowAlpha})`;
       waveformCtx.beginPath();
-      waveformCtx.roundRect(x - actualBarWidth/2 - 3, barY - 3, actualBarWidth + 6, barHeight + 6, 4);
+      waveformCtx.roundRect(x - actualBarWidth/2, barY, actualBarWidth, barHeight, 2);
       waveformCtx.fill();
-    }
-
-    // Draw main bar
-    waveformCtx.fillStyle = `rgba(${r_col}, ${g_col}, ${b_col}, ${alpha})`;
-    waveformCtx.beginPath();
-    waveformCtx.roundRect(x - actualBarWidth/2, barY, actualBarWidth, barHeight, 2);
-    waveformCtx.fill();
-
-    // Spawn particles on strong hover interaction
-    if (bar.glow > 0.8 && Math.random() < 0.1) {
-      spawnParticles(x, barY, 1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
     }
   }
 
   // Draw playhead line
   if (progress > 0) {
     const playheadX = progress * w;
-
-    // Glow
-    const gradient = waveformCtx.createLinearGradient(playheadX - 10, 0, playheadX + 10, 0);
-    gradient.addColorStop(0, 'transparent');
-    gradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
-    gradient.addColorStop(1, 'transparent');
-    waveformCtx.fillStyle = gradient;
-    waveformCtx.fillRect(playheadX - 10, 8, 20, h - 16);
-
-    // Line
     waveformCtx.fillStyle = `rgba(255, 255, 255, 0.9)`;
     waveformCtx.fillRect(playheadX - 1, 8, 2, h - 16);
-  }
-
-  // Draw particles
-  for (const p of particles) {
-    waveformCtx.fillStyle = p.color.replace(/[\d.]+\)$/, `${p.alpha})`);
-    waveformCtx.beginPath();
-    waveformCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    waveformCtx.fill();
   }
 
   requestAnimationFrame(renderWaveform);

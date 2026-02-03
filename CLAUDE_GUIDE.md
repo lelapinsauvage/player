@@ -177,113 +177,230 @@ Trust Karim's instincts on feel. Trust Emil's principles on implementation. Ship
 
 ---
 
-## Case Study: "Magnetic Pulse" Waveform Timeline
+---
 
-### The Challenge
-The original waveform progress bar was functional but generic - just bars that appeared on hover. Karim said: *"the timeline is not crazy at all... I don't want this to stop me from going on codrops so ud better do a good job"*
+# Technical Report: Vinyl Player Web App
 
-### The Solution
-A physics-based waveform where bars magnetically pull toward the cursor, creating an organic, tactile interaction.
+## Overview
 
-### Why It Works
+A Codrops/Awwwards-quality vinyl record player web application featuring:
+- 3D Three.js vinyl turntable with physically-based materials
+- ASCII shader video backgrounds
+- WebGL aurora cloud effects
+- Audio-reactive visualizations
+- Physics-based UI interactions
+- Cinematic, editorial aesthetic
 
-1. **Physics-based interaction** - Not just hover states, actual spring physics with velocity and damping
-2. **Multiple layers of feedback** - Magnetic pull + glow aura + ripple shockwave + particles
-3. **Audio-reactive** - Bars pulse with bass frequencies even when not hovering
-4. **Unexpected behavior** - Users don't expect bars to reach toward them
-
-### Technical Implementation
-
-#### Spring Physics for Each Bar
-```javascript
-// Each bar has its own physics state
-barStates.push({
-  y: 0,           // Current Y offset
-  vy: 0,          // Y velocity
-  scale: 1,       // Current scale
-  glow: 0,        // Glow intensity
-  baseHeight: waveformData[i]
-});
-
-// Spring physics update
-const SPRING = 0.15;
-const DAMPING = 0.75;
-
-const forceY = (targetY - bar.y) * SPRING;
-bar.vy += forceY;
-bar.vy *= DAMPING;
-bar.y += bar.vy;
-```
-
-#### Magnetic Cursor Attraction
-```javascript
-const MAGNETIC_STRENGTH = 25;
-const MAGNETIC_RADIUS = 0.15; // 15% of width
-
-if (dist < MAGNETIC_RADIUS) {
-  const force = 1 - (dist / MAGNETIC_RADIUS);
-  const eased = force * force * force; // Cubic ease for smooth falloff
-  magneticY = -eased * MAGNETIC_STRENGTH; // Pull UP toward cursor
-  magneticScale = 1 + eased * 0.4; // Scale up near cursor
-}
-```
-
-#### Ripple Shockwave on Click
-```javascript
-function spawnRipple(x) {
-  ripples.push({
-    x: x,
-    radius: 0,
-    maxRadius: 150,
-    alpha: 1,
-    speed: 8
-  });
-}
-
-// Ripples push nearby bars
-for (const r of ripples) {
-  const rippleDist = Math.abs(barX - r.x);
-  if (rippleDist < r.radius + 30 && rippleDist > r.radius - 30) {
-    const force = (1 - Math.abs(rippleDist - r.radius) / 30) * r.alpha;
-    magneticY -= force * 15;
-  }
-}
-```
-
-### The Evolution
-
-| Attempt | Problem |
-|---------|---------|
-| Spotlight effect (only show bars near cursor) | Too subtle, looked like a loading indicator |
-| Full waveform always visible | Generic, like every other audio player |
-| **Magnetic Pulse** | Bars REACT to cursor physically - this is the key insight |
-
-### Key Insight
-
-**Make the UI respond to the user physically, not just visually.**
-
-The cursor creates a visible "energy field" - users see their influence before they even click. This creates anticipation and delight.
-
-### Spring Constants That Feel Good
-```javascript
-SPRING = 0.15    // Lower = slower, mushier
-DAMPING = 0.75   // Higher = stops faster, less bouncy
-```
-
-### Performance Considerations
-- Use `requestAnimationFrame` for smooth 60fps
-- Limit particle count
-- Use simple math (no trig in hot paths)
-- Canvas, not DOM elements (80 divs would be slow)
+**Target:** Award-winning web experience (Codrops, FWA, Awwwards)
 
 ---
 
-## Server Note: Audio Seeking
+## Architecture
 
-Audio seeking requires HTTP Range request support. Python's default `http.server` doesn't support it, causing `audio.currentTime` to silently fail.
+### File Structure
+```
+player/
+├── index.html      # Minimal markup, canvas elements
+├── main.js         # All application logic (~3500 lines)
+├── style.css       # All styles (~1700 lines)
+├── server.py       # Local dev server with Range request support
+└── CLAUDE_GUIDE.md # This documentation
+```
 
-**Symptom:** Setting `audio.currentTime = 100` results in `audio.currentTime` being `0`.
+### Tech Stack
+| Technology | Purpose |
+|------------|---------|
+| Vanilla JS (ES modules) | Core application logic |
+| Three.js | 3D vinyl turntable rendering |
+| WebGL Shaders | ASCII effect, aurora clouds |
+| Web Audio API | Frequency analysis for visualizations |
+| Canvas 2D | Waveform timeline, visualizer bars |
+| CSS | Animations, layout, theming |
 
-**Solution:** Use the custom `server.py` which returns proper `206 Partial Content` responses with `Content-Range` headers.
+---
 
-**Production:** All major hosts (Netlify, Vercel, Cloudflare, AWS) handle this automatically.
+## Core Features
+
+### 1. 3D Vinyl Turntable
+- Three.js scene with realistic PBR materials
+- Spinning vinyl with album art texture
+- Tonearm animation synced to playback
+- Dynamic lighting that adapts to track accent colors
+- Smooth camera transitions between states
+
+### 2. ASCII Shader Background
+- WebGL shader converts video source to ASCII characters
+- Characters colored by track's accent palette
+- Creates cohesive "techy editorial" aesthetic
+- Video source hidden, only ASCII representation visible
+
+### 3. Aurora Cloud Effect
+- WebGL particle system
+- Reacts to audio frequencies (bass = movement, highs = brightness)
+- Colors derived from current track
+- Adds atmospheric depth behind vinyl
+
+### 4. Radial Visualizer Bars
+- Canvas-based radial bars around vinyl
+- Frequency data from Web Audio API analyser
+- Bars extend outward from vinyl center
+- Audio-reactive with smooth interpolation
+
+### 5. Waveform Timeline (Editorial Style)
+
+The timeline went through multiple iterations to balance "playful" with "editorial/techy":
+
+#### Final Implementation
+```javascript
+// Physics constants - editorial feel: subtle, precise
+const MAGNETIC_STRENGTH = 6;   // Subtle lift (was 25)
+const MAGNETIC_RADIUS = 0.08;  // Tight hover area (was 0.15)
+const SPRING = 0.25;           // Snappy response
+const DAMPING = 0.65;          // Less bouncy
+```
+
+#### Bar Rendering
+- **Played bars:** Full accent color at 95% opacity
+- **Unplayed bars:** Desaturated (40% accent + gray), 25% base opacity
+- **Hover effect:** Bars brighten and shift toward accent color
+- **Movement:** Subtle vertical lift (6px max) with minimal scale (15%)
+
+#### Color Treatment
+```javascript
+// Unplayed bars: desaturated, mix toward accent on hover
+const desatR = Math.round(rgb.r * 0.4 + 120);
+const desatG = Math.round(rgb.g * 0.4 + 120);
+const desatB = Math.round(rgb.b * 0.4 + 120);
+
+// Hover interpolation
+const finalR = Math.round(desatR + (rgb.r - desatR) * bar.glow);
+```
+
+#### Why This Works
+- **Editorial:** Subtle, controlled movements - not toy-like
+- **Techy:** Precise physics, clean color math
+- **Playful (but restrained):** Still has spring physics, just tighter
+
+### 6. Track System
+Each track includes:
+```javascript
+{
+  title: "Money Trees",
+  artist: "Kendrick Lamar",
+  album: "good kid, m.A.A.d city",
+  year: "2012",
+  producer: "DJ Dahi",
+  src: "audio/money-trees.mp3",
+  cover: "covers/gkmc.jpg",
+  accentColor: "#4a7c59",      // Primary UI color
+  vizColors: ["#4a7c59", ...], // Visualizer palette
+  // ... additional metadata
+}
+```
+
+---
+
+## Key Technical Details
+
+### Audio Seeking (Range Requests)
+**Problem:** Browser audio seeking requires HTTP Range request support. Python's default `http.server` doesn't support it.
+
+**Symptom:** `audio.currentTime = 100` silently fails, stays at 0.
+
+**Solution:** Custom `server.py` returns `206 Partial Content` with `Content-Range` headers.
+
+```python
+# server.py handles Range requests
+if range_header:
+    self.send_response(206)
+    self.send_header('Content-Range', f'bytes {start}-{end}/{file_size}')
+```
+
+**Production:** Netlify, Vercel, Cloudflare, AWS all handle this automatically.
+
+### Canvas Rendering
+- Device pixel ratio handling for sharp rendering on Retina displays
+- `requestAnimationFrame` for 60fps animations
+- Separate canvases for different elements (waveform, visualizer, loader)
+
+### Performance Considerations
+- Canvas over DOM for high-frequency updates (80 waveform bars)
+- Simple math in render loops (no trig in hot paths)
+- Particle count limits
+- Efficient alpha blending
+
+---
+
+## Design Philosophy
+
+### The Aesthetic Balance
+The site targets an **"editorial + techy"** feel:
+
+| Too Playful | Just Right | Too Sterile |
+|-------------|------------|-------------|
+| Bouncy springs | Snappy, controlled physics | No animation |
+| Bright glows everywhere | Subtle color shifts | Flat, no depth |
+| Particles flying | Ripple on click only | No feedback |
+| Over-animated | Purposeful motion | Static UI |
+
+### Key Principle
+> "The bar is still playful while the site is still editorial and techy - you need the perfect mix of both"
+
+This means:
+- Physics exist but are **restrained**
+- Colors shift but are **sophisticated**
+- Interactions respond but feel **precise**
+
+---
+
+## Iteration History
+
+### Waveform Timeline Evolution
+
+| Version | Issue |
+|---------|-------|
+| v1: Basic bars | "looks cheap", no personality |
+| v2: Heavy glow + large lift | Too playful, glow overflow clipping |
+| v3: Spotlight reveal | Looked like loading indicator |
+| **v4: Editorial physics** | Subtle lift, tight radius, desaturated colors - **shipped** |
+
+### Key Learning
+When Karim says "it's worse" - **revert immediately**. Don't defend the implementation. The site's feel is subjective but Karim's instincts are calibrated to Codrops-level quality.
+
+---
+
+## Future Considerations
+
+### Planned: Spotify Integration
+- OAuth login for user's music library
+- 30-second preview playback
+- Procedural ASCII backgrounds (no copyrighted video)
+- See plan file for details
+
+### Responsive Design
+- Mobile version needs attention
+- Touch interactions differ from mouse hover
+- Consider reduced motion for performance
+
+---
+
+## Running Locally
+
+```bash
+cd player
+python3 server.py
+# Open http://localhost:8000
+```
+
+**Important:** Must use `server.py`, not `python -m http.server` (no Range support).
+
+---
+
+## Summary for Future Agents
+
+1. **Read this guide first** - understand Karim's communication style
+2. **Use `/emil-design-engineering`** - follow animation best practices
+3. **Keep it editorial** - subtle > flashy, precise > bouncy
+4. **Test on the actual site** - screenshots help, but feel matters more
+5. **Revert fast** - if "it's worse", don't argue, just fix
+6. **Cohesion matters** - every element should feel like it belongs
