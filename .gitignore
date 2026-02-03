@@ -21,3 +21,6 @@ build/
 # Environment
 .env
 .env.local
+
+# Large media files
+promo/

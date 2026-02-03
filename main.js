@@ -479,10 +479,61 @@ let loaderVizColors = [];
 let loaderAccentColor = '#ff5722';
 let assetsLoaded = false; // Track when assets are ready
 let explosionStartTime = null; // When explosion phase began
+let preloaderAnimationId = null; // For the initial blinking rectangle
 
 const LOADER_CHARS = ['+', '.', ':', '·', '|', '-'];
 const MIN_LOADER_TIME = 1.2; // Minimum time before explosion can start
 const EXPLOSION_DURATION = 0.35; // How long explosion takes
+
+// Show blinking rectangle IMMEDIATELY while page loads
+(function showPreloader() {
+  if (!loaderCanvas || !loaderOverlay) return;
+
+  const ctx = loaderCanvas.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  loaderCanvas.width = window.innerWidth * dpr;
+  loaderCanvas.height = window.innerHeight * dpr;
+  loaderCanvas.style.width = window.innerWidth + 'px';
+  loaderCanvas.style.height = window.innerHeight + 'px';
+  ctx.scale(dpr, dpr);
+
+  const track = tracks[currentTrack];
+  const color = track?.accentColor || '#ff5722';
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const startTime = performance.now();
+
+  function drawPreloader() {
+    if (loaderStartTime > 0) {
+      // Main loader has started, stop preloader
+      return;
+    }
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const cx = w / 2;
+    const cy = h / 2;
+    const elapsed = (performance.now() - startTime) / 1000;
+
+    // Clear and fill black
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    // Blinking rectangle (cursor style)
+    const blink = Math.floor(elapsed * 2) % 2 === 0;
+    if (blink) {
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+      ctx.fillRect(cx - 6, cy - 12, 12, 24);
+    }
+
+    preloaderAnimationId = requestAnimationFrame(drawPreloader);
+  }
+
+  drawPreloader();
+})();
 
 class LoaderParticle {
   constructor(x, y, char, color) {
@@ -522,6 +573,12 @@ function initLoader() {
   const track = tracks[currentTrack];
   loaderVizColors = track.vizColors || ['#c4a35a'];
   loaderAccentColor = track.accentColor || '#c4a35a';
+
+  // Stop preloader blinking rectangle
+  if (preloaderAnimationId) {
+    cancelAnimationFrame(preloaderAnimationId);
+    preloaderAnimationId = null;
+  }
 
   // Setup Canvas 2D
   loaderCtx = loaderCanvas.getContext('2d');
@@ -3281,40 +3338,102 @@ function openMenu() {
 function closeMenu() {
   menuOpen = false;
 
-  // Lock current dimensions
-  const currentHeight = songMenu.offsetHeight;
-  const currentWidth = songMenu.offsetWidth;
-  songMenu.style.height = currentHeight + 'px';
-  songMenu.style.width = currentWidth + 'px';
+  // Get menu position for ASCII particles
+  const rect = songMenu.getBoundingClientRect();
 
-  // Start closing - content fades first
+  // Spawn ASCII dissolve particles
+  spawnAsciiDissolve(rect);
+
+  // Fade menu with CSS
   songMenu.classList.add('closing');
   menuOverlay.classList.remove('open');
 
-  // After content mostly faded, start shrinking
-  setTimeout(() => {
-    if (!menuOpen) {
-      songMenu.style.height = '48px';
-      songMenu.style.width = '180px';
-      songMenu.classList.add('shrunk');
-    }
-  }, 100); // Was 50ms, now 100ms - wait for content
-
-  // Button fades in as menu shrinks - crossfade
+  // Button fades in
   setTimeout(() => {
     if (!menuOpen) menuBtn.classList.remove('hidden');
-  }, 150); // Was 80ms, now 150ms - better crossfade
+  }, 80);
 
-  // Clean up after animation completes
+  // Clean up after animation
   setTimeout(() => {
     if (!menuOpen) {
       songMenu.classList.remove('open');
       songMenu.classList.remove('closing');
-      songMenu.classList.remove('shrunk');
-      songMenu.style.height = '';
-      songMenu.style.width = '';
     }
-  }, 350);
+  }, 300);
+}
+
+// ASCII dissolve effect
+const ASCII_CHARS = ['@', '#', '$', '%', '&', '*', '+', '=', '-', '~', '.', ':', ';', '!', '?', '/', '\\', '|'];
+
+function spawnAsciiDissolve(rect) {
+  const particleCount = 60;
+  const track = tracks[currentTrack];
+  const color = track?.accentColor || '#ff5722';
+
+  // Create particle container
+  const container = document.createElement('div');
+  container.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 350;
+    overflow: hidden;
+  `;
+  document.body.appendChild(container);
+
+  // Spawn particles across the menu area
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('span');
+    particle.textContent = ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
+
+    // Random position within menu bounds
+    const startX = rect.left + Math.random() * rect.width;
+    const startY = rect.top + Math.random() * rect.height;
+
+    // Random velocity - scatter outward
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 30 + Math.random() * 80;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 20; // Slight upward bias
+
+    // Random rotation
+    const rotation = (Math.random() - 0.5) * 720;
+
+    // Staggered delay for wave effect
+    const delay = Math.random() * 100;
+
+    particle.style.cssText = `
+      position: absolute;
+      left: ${startX}px;
+      top: ${startY}px;
+      font-family: monospace;
+      font-size: ${10 + Math.random() * 8}px;
+      font-weight: bold;
+      color: ${color};
+      opacity: 0.9;
+      pointer-events: none;
+      text-shadow: 0 0 10px ${color}40;
+      transform: translate(0, 0) rotate(0deg);
+      transition: transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  opacity 400ms ease-out;
+    `;
+
+    container.appendChild(particle);
+
+    // Trigger animation after a frame
+    setTimeout(() => {
+      particle.style.transform = `translate(${vx}px, ${vy}px) rotate(${rotation}deg)`;
+      particle.style.opacity = '0';
+    }, delay + 10);
+  }
+
+  // Clean up container
+  setTimeout(() => {
+    container.remove();
+  }, 600);
 }
 
 function toggleMenu() {
@@ -3343,44 +3462,17 @@ function populateMenu() {
         <div class="song-title">${track.title.replace(/<[^>]*>/g, '')}</div>
         <div class="song-artist">${track.artist}</div>
       </div>
-      <div class="song-item-controls">
-        <button class="song-item-btn play-btn" data-index="${index}" aria-label="Play now">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-        </button>
-        <button class="song-item-btn queue-btn" data-index="${index}" aria-label="Play next">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14"/>
-            <path d="M12 5l7 7-7 7"/>
-          </svg>
-        </button>
-      </div>
-      <div class="song-playing">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      </div>
     `;
 
-    // Click on song info to select
-    item.querySelector('.song-info').addEventListener('click', () => {
-      selectTrack(index);
-    });
-    item.querySelector('.song-cover').addEventListener('click', () => {
-      selectTrack(index);
-    });
-
-    // Play button
-    item.querySelector('.play-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      playTrackNow(index);
-    });
-
-    // Queue button (play next)
-    item.querySelector('.queue-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      addToQueue(index);
+    // Click on entire item to play
+    item.addEventListener('click', () => {
+      if (index === currentTrack) {
+        // Already playing this track, just close menu
+        closeMenu();
+      } else {
+        // Play the selected track
+        playTrackNow(index);
+      }
     });
 
     menuList.appendChild(item);
