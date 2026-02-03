@@ -699,13 +699,9 @@ body.playing .play-icon-wrap .icon-pause {
   transition: transform 0.3s ease;
 }
 
-body.playing .now-playing-cover {
-  animation: coverSpin 3s linear infinite;
-}
-
-@keyframes coverSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* Cover spin now controlled by JavaScript for smooth velocity */
+.now-playing-cover {
+  will-change: transform;
 }
 
 .now-playing-text {
@@ -1092,6 +1088,7 @@ body.playing .now-playing-cover {
   background-position: center;
   background-color: var(--white-10);
   flex-shrink: 0;
+  will-change: transform;
 }
 
 body.playing .menu-player-cover {

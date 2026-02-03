@@ -406,6 +406,68 @@ let currentTrack = 0;
 let isPlaying = false;
 
 // ============================================
+// COVER VINYL ROTATION SYSTEM
+// Smooth velocity-based spinning with deceleration
+// ============================================
+let coverRotation = 0;
+let coverVelocity = 0;
+const COVER_SPIN_SPEED = 120; // degrees per second when playing (one rotation every 3s)
+const COVER_FRICTION = 0.985; // friction for deceleration (closer to 1 = slower stop)
+let coverAnimationId = null;
+
+function updateCoverRotation() {
+  const now = performance.now();
+  const delta = (now - (updateCoverRotation.lastTime || now)) / 1000;
+  updateCoverRotation.lastTime = now;
+
+  if (isPlaying) {
+    // Smoothly accelerate to target speed
+    const targetVelocity = COVER_SPIN_SPEED;
+    coverVelocity += (targetVelocity - coverVelocity) * 0.08;
+  } else {
+    // Apply friction to decelerate
+    coverVelocity *= COVER_FRICTION;
+    // Stop completely when very slow
+    if (Math.abs(coverVelocity) < 0.5) {
+      coverVelocity = 0;
+    }
+  }
+
+  // Update rotation
+  coverRotation += coverVelocity * delta;
+  coverRotation = coverRotation % 360;
+
+  // Apply to cover elements
+  const transform = `rotate(${coverRotation}deg)`;
+  if (nowPlayingCover) {
+    nowPlayingCover.style.transform = transform;
+  }
+  if (menuPlayerCover) {
+    menuPlayerCover.style.transform = transform;
+  }
+
+  // Continue animation if there's any velocity
+  if (coverVelocity !== 0 || isPlaying) {
+    coverAnimationId = requestAnimationFrame(updateCoverRotation);
+  } else {
+    coverAnimationId = null;
+  }
+}
+
+function startCoverSpin() {
+  if (!coverAnimationId) {
+    updateCoverRotation.lastTime = performance.now();
+    coverAnimationId = requestAnimationFrame(updateCoverRotation);
+  }
+}
+
+function addCoverVelocityBurst(burst = 400) {
+  // Add extra velocity for "wow" effect on track change
+  coverVelocity += burst;
+  startCoverSpin();
+}
+
+// ============================================
 // DOM
 // ============================================
 const audio = document.getElementById('audio');
@@ -609,7 +671,6 @@ function signalAssetsLoaded() {
 // Fallback: if assets take too long, proceed anyway
 setTimeout(() => {
   if (!assetsLoaded) {
-    console.log('Loader timeout - proceeding');
     signalAssetsLoaded();
   }
 }, 8000);
@@ -2466,8 +2527,6 @@ function updateAsciiShader() {
     high = high / 40 / 255;
     asciiBass += (bass - asciiBass) * 0.15;
     asciiHigh += (high - asciiHigh) * 0.2;
-    // Debug: log bass values occasionally
-    if (Math.random() < 0.01) console.log('ASCII Bass:', asciiBass.toFixed(2), 'High:', asciiHigh.toFixed(2));
   } else {
     asciiBass *= 0.9;
     asciiHigh *= 0.9;
@@ -3236,12 +3295,16 @@ function togglePlay() {
     tonearmInPosition = false;
     stopStoryReveal();
     syncAsciiBg();
+    // Cover spin continues but decelerates (handled by animation loop)
+    startCoverSpin();
   } else {
     isPlaying = true;
     audio.play();
     document.body.classList.add('playing');
     // Faster spin-up (motor engaging)
     animateVinylSpeed(0, 0.025, 500);
+    // Start cover spin with smooth acceleration
+    startCoverSpin();
     // Only animate tonearm if it's not already in position
     if (!tonearmInPosition) {
       animateTonearmWithBounce(true);
@@ -3356,9 +3419,11 @@ function tapeStop(duration = 300) {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       // Exponential slowdown for realistic tape stop feel
-      audio.playbackRate = startRate * Math.pow(1 - progress, 2);
+      // Clamp to minimum supported playback rate (0.0625)
+      const rate = Math.max(0.0625, startRate * Math.pow(1 - progress, 2));
+      audio.playbackRate = rate;
 
-      if (progress < 1) {
+      if (progress < 1 && rate > 0.0625) {
         requestAnimationFrame(tick);
       } else {
         audio.pause();
@@ -3406,6 +3471,9 @@ async function transitionToTrack(newIndex) {
 
   // Phase 1: EXIT - text slides out + vinyl speeds up (in parallel)
   if (trackHeader) trackHeader.classList.add('exit');
+
+  // Add velocity burst to cover vinyl for "wow" effect
+  addCoverVelocityBurst(500);
 
   await Promise.all([
     vinyl ? vinylSpeedUp(350) : Promise.resolve(),
