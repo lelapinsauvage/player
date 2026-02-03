@@ -174,3 +174,116 @@ Claude: "But this is technically the correct approach because..." // NO! Just re
 Karim builds with intention. Every detail matters. The goal isn't just "working" - it's "feeling magical." When in doubt, ask yourself: "Would this be featured on Codrops?"
 
 Trust Karim's instincts on feel. Trust Emil's principles on implementation. Ship fast, iterate faster.
+
+---
+
+## Case Study: "Magnetic Pulse" Waveform Timeline
+
+### The Challenge
+The original waveform progress bar was functional but generic - just bars that appeared on hover. Karim said: *"the timeline is not crazy at all... I don't want this to stop me from going on codrops so ud better do a good job"*
+
+### The Solution
+A physics-based waveform where bars magnetically pull toward the cursor, creating an organic, tactile interaction.
+
+### Why It Works
+
+1. **Physics-based interaction** - Not just hover states, actual spring physics with velocity and damping
+2. **Multiple layers of feedback** - Magnetic pull + glow aura + ripple shockwave + particles
+3. **Audio-reactive** - Bars pulse with bass frequencies even when not hovering
+4. **Unexpected behavior** - Users don't expect bars to reach toward them
+
+### Technical Implementation
+
+#### Spring Physics for Each Bar
+```javascript
+// Each bar has its own physics state
+barStates.push({
+  y: 0,           // Current Y offset
+  vy: 0,          // Y velocity
+  scale: 1,       // Current scale
+  glow: 0,        // Glow intensity
+  baseHeight: waveformData[i]
+});
+
+// Spring physics update
+const SPRING = 0.15;
+const DAMPING = 0.75;
+
+const forceY = (targetY - bar.y) * SPRING;
+bar.vy += forceY;
+bar.vy *= DAMPING;
+bar.y += bar.vy;
+```
+
+#### Magnetic Cursor Attraction
+```javascript
+const MAGNETIC_STRENGTH = 25;
+const MAGNETIC_RADIUS = 0.15; // 15% of width
+
+if (dist < MAGNETIC_RADIUS) {
+  const force = 1 - (dist / MAGNETIC_RADIUS);
+  const eased = force * force * force; // Cubic ease for smooth falloff
+  magneticY = -eased * MAGNETIC_STRENGTH; // Pull UP toward cursor
+  magneticScale = 1 + eased * 0.4; // Scale up near cursor
+}
+```
+
+#### Ripple Shockwave on Click
+```javascript
+function spawnRipple(x) {
+  ripples.push({
+    x: x,
+    radius: 0,
+    maxRadius: 150,
+    alpha: 1,
+    speed: 8
+  });
+}
+
+// Ripples push nearby bars
+for (const r of ripples) {
+  const rippleDist = Math.abs(barX - r.x);
+  if (rippleDist < r.radius + 30 && rippleDist > r.radius - 30) {
+    const force = (1 - Math.abs(rippleDist - r.radius) / 30) * r.alpha;
+    magneticY -= force * 15;
+  }
+}
+```
+
+### The Evolution
+
+| Attempt | Problem |
+|---------|---------|
+| Spotlight effect (only show bars near cursor) | Too subtle, looked like a loading indicator |
+| Full waveform always visible | Generic, like every other audio player |
+| **Magnetic Pulse** | Bars REACT to cursor physically - this is the key insight |
+
+### Key Insight
+
+**Make the UI respond to the user physically, not just visually.**
+
+The cursor creates a visible "energy field" - users see their influence before they even click. This creates anticipation and delight.
+
+### Spring Constants That Feel Good
+```javascript
+SPRING = 0.15    // Lower = slower, mushier
+DAMPING = 0.75   // Higher = stops faster, less bouncy
+```
+
+### Performance Considerations
+- Use `requestAnimationFrame` for smooth 60fps
+- Limit particle count
+- Use simple math (no trig in hot paths)
+- Canvas, not DOM elements (80 divs would be slow)
+
+---
+
+## Server Note: Audio Seeking
+
+Audio seeking requires HTTP Range request support. Python's default `http.server` doesn't support it, causing `audio.currentTime` to silently fail.
+
+**Symptom:** Setting `audio.currentTime = 100` results in `audio.currentTime` being `0`.
+
+**Solution:** Use the custom `server.py` which returns proper `206 Partial Content` responses with `Content-Range` headers.
+
+**Production:** All major hosts (Netlify, Vercel, Cloudflare, AWS) handle this automatically.

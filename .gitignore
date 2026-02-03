@@ -24,3 +24,6 @@ build/
 
 # Large media files
 promo/
+
+# Local Netlify folder
+.netlify

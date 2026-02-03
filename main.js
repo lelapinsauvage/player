@@ -427,7 +427,12 @@ const timeCurrent = document.getElementById('time-current');
 const timeTotal = document.getElementById('time-total');
 const progressBar = document.getElementById('progress-bar');
 const progressFill = document.getElementById('progress-fill');
+const progressGlow = document.getElementById('progress-glow');
 const scrubber = document.getElementById('scrubber');
+const waveformCanvas = document.getElementById('waveform-canvas');
+const waveformCtx = waveformCanvas ? waveformCanvas.getContext('2d') : null;
+const scrubLine = document.getElementById('scrub-line');
+const progressWrapper = document.querySelector('.progress-wrapper');
 const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
 const visualizer = document.getElementById('visualizer');
@@ -2662,6 +2667,363 @@ function updateVizBars() {
 }
 
 // ============================================
+// WAVEFORM PROGRESS BAR - "Magnetic Pulse"
+// Physics-based bars with magnetic cursor attraction
+// ============================================
+const WAVEFORM_SAMPLES = 80;
+let waveformData = null;
+let waveformHoverX = -1;
+let waveformHoverY = -1;
+let waveformAnimating = false;
+
+// Physics state for each bar
+let barStates = null; // { y: current y offset, vy: velocity, targetHeight: base height }
+
+// Ripple effect state
+let ripples = [];
+
+// Particle system
+let particles = [];
+
+// Generate procedural waveform data for a track
+function generateWaveformData(trackIndex) {
+  const samples = WAVEFORM_SAMPLES;
+  const data = new Float32Array(samples);
+
+  // Seeded random for consistent patterns per track
+  const seed = (trackIndex + 1) * 7919;
+  const seededRandom = (i) => {
+    const x = Math.sin(seed + i * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
+  // Generate waveform with musical dynamics
+  for (let i = 0; i < samples; i++) {
+    const t = i / samples;
+
+    // Multiple frequency layers for organic feel
+    let value = 0.35;
+    value += Math.sin(t * Math.PI * 2 + seed * 0.1) * 0.12;
+    value += Math.sin(t * Math.PI * 5 + seed * 0.2) * 0.15;
+    value += Math.sin(t * Math.PI * 11 + seed * 0.3) * 0.08;
+    value += Math.sin(t * Math.PI * 23 + seed * 0.4) * 0.05;
+
+    // Controlled randomness
+    value += (seededRandom(i) - 0.5) * 0.2;
+
+    // Musical envelope (intro/outro softer)
+    const env = Math.sin(t * Math.PI);
+    value = value * (0.6 + env * 0.4);
+
+    data[i] = Math.max(0.15, Math.min(1, value));
+  }
+
+  return data;
+}
+
+// Initialize bar physics states
+function initBarStates() {
+  if (!waveformData) return;
+  barStates = [];
+  for (let i = 0; i < waveformData.length; i++) {
+    barStates.push({
+      y: 0,           // Current Y offset (magnetic pull)
+      vy: 0,          // Y velocity
+      scale: 1,       // Current scale
+      vscale: 0,      // Scale velocity
+      glow: 0,        // Glow intensity
+      baseHeight: waveformData[i]
+    });
+  }
+}
+
+// Initialize waveform
+function initWaveform() {
+  if (!waveformCanvas || !waveformCtx) return;
+
+  resizeWaveform();
+  waveformData = generateWaveformData(currentTrack);
+  initBarStates();
+
+  window.addEventListener('resize', resizeWaveform);
+
+  if (!waveformAnimating) {
+    waveformAnimating = true;
+    renderWaveform();
+  }
+}
+
+function resizeWaveform() {
+  if (!waveformCanvas) return;
+  const wrapper = waveformCanvas.parentElement;
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  waveformCanvas.width = wrapper.clientWidth * dpr;
+  waveformCanvas.height = 80 * dpr;
+  waveformCanvas.style.width = wrapper.clientWidth + 'px';
+  waveformCanvas.style.height = '80px';
+  waveformCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Spawn ripple effect
+function spawnRipple(x) {
+  ripples.push({
+    x: x,
+    radius: 0,
+    maxRadius: 150,
+    alpha: 1,
+    speed: 8
+  });
+}
+
+// Spawn particles
+function spawnParticles(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 3,
+      vy: -Math.random() * 4 - 2,
+      size: Math.random() * 3 + 1,
+      alpha: 1,
+      color: color,
+      life: 1
+    });
+  }
+}
+
+function renderWaveform() {
+  if (!waveformCtx || !waveformData || !barStates) {
+    requestAnimationFrame(renderWaveform);
+    return;
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const w = waveformCanvas.width / dpr;
+  const h = waveformCanvas.height / dpr;
+  const samples = waveformData.length;
+  const barWidth = w / samples;
+  const gap = 3;
+  const maxHeight = h - 16;
+  const baseY = h - 8;
+
+  // Clear
+  waveformCtx.clearRect(0, 0, w, h);
+
+  // Get colors
+  const track = tracks[currentTrack];
+  const accentColor = track?.accentColor || '#ff5722';
+  const rgb = hexToRgb(accentColor);
+
+  // Progress
+  const progress = audio.duration ? audio.currentTime / audio.duration : 0;
+
+  // Audio reactivity
+  let bass = 0, high = 0;
+  if (analyser && isPlaying) {
+    analyser.getByteFrequencyData(dataArray);
+    for (let i = 0; i < 4; i++) bass += dataArray[i];
+    bass = bass / 4 / 255;
+    for (let i = 60; i < 80; i++) high += dataArray[i];
+    high = high / 20 / 255;
+  }
+
+  const isHovering = waveformHoverX >= 0;
+  const cursorT = isHovering ? waveformHoverX / w : -1;
+
+  // Physics constants
+  const MAGNETIC_STRENGTH = 25;
+  const MAGNETIC_RADIUS = 0.15;
+  const SPRING = 0.15;
+  const DAMPING = 0.75;
+
+  // Update ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i];
+    r.radius += r.speed;
+    r.alpha = 1 - (r.radius / r.maxRadius);
+    if (r.alpha <= 0) {
+      ripples.splice(i, 1);
+    }
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15; // gravity
+    p.life -= 0.02;
+    p.alpha = p.life;
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+
+  // Draw glow field under cursor
+  if (isHovering) {
+    const gradient = waveformCtx.createRadialGradient(
+      waveformHoverX, baseY - 20, 0,
+      waveformHoverX, baseY - 20, 80
+    );
+    gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`);
+    gradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)`);
+    gradient.addColorStop(1, 'transparent');
+    waveformCtx.fillStyle = gradient;
+    waveformCtx.fillRect(waveformHoverX - 100, 0, 200, h);
+  }
+
+  // Draw ripples
+  for (const r of ripples) {
+    waveformCtx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${r.alpha * 0.5})`;
+    waveformCtx.lineWidth = 2;
+    waveformCtx.beginPath();
+    waveformCtx.arc(r.x, baseY - 20, r.radius, 0, Math.PI * 2);
+    waveformCtx.stroke();
+  }
+
+  // Update and draw bars
+  for (let i = 0; i < samples; i++) {
+    const bar = barStates[i];
+    const t = i / samples;
+    const x = i * barWidth + barWidth / 2;
+
+    // Magnetic force from cursor
+    let magneticY = 0;
+    let magneticScale = 1;
+    if (isHovering) {
+      const dist = Math.abs(t - cursorT);
+      if (dist < MAGNETIC_RADIUS) {
+        const force = 1 - (dist / MAGNETIC_RADIUS);
+        const eased = force * force * force; // Cubic ease for smooth falloff
+        magneticY = -eased * MAGNETIC_STRENGTH;
+        magneticScale = 1 + eased * 0.4;
+        bar.glow = Math.max(bar.glow, eased);
+      }
+    }
+
+    // Ripple force
+    for (const r of ripples) {
+      const barX = x;
+      const rippleDist = Math.abs(barX - r.x);
+      if (rippleDist < r.radius + 30 && rippleDist > r.radius - 30) {
+        const force = (1 - Math.abs(rippleDist - r.radius) / 30) * r.alpha;
+        magneticY -= force * 15;
+        magneticScale += force * 0.2;
+      }
+    }
+
+    // Audio pulse
+    const audioPulse = isPlaying ? (bass * 0.3 + high * 0.1) : 0;
+
+    // Spring physics for Y
+    const targetY = magneticY;
+    const forceY = (targetY - bar.y) * SPRING;
+    bar.vy += forceY;
+    bar.vy *= DAMPING;
+    bar.y += bar.vy;
+
+    // Spring physics for scale
+    const targetScale = magneticScale + audioPulse;
+    const forceScale = (targetScale - bar.scale) * SPRING;
+    bar.vscale += forceScale;
+    bar.vscale *= DAMPING;
+    bar.scale += bar.vscale;
+
+    // Decay glow
+    bar.glow *= 0.92;
+
+    // Calculate bar dimensions
+    const barHeight = bar.baseHeight * maxHeight * bar.scale;
+    const barY = baseY - barHeight + bar.y;
+    const actualBarWidth = Math.max(2, barWidth - gap);
+
+    // Color based on progress
+    const isPast = t <= progress;
+    let alpha, r_col, g_col, b_col;
+
+    if (isPast) {
+      // Played: full accent color
+      r_col = rgb.r;
+      g_col = rgb.g;
+      b_col = rgb.b;
+      alpha = 0.95;
+    } else {
+      // Unplayed: desaturated/dim
+      r_col = Math.round(rgb.r * 0.4 + 100);
+      g_col = Math.round(rgb.g * 0.4 + 100);
+      b_col = Math.round(rgb.b * 0.4 + 100);
+      alpha = 0.4;
+    }
+
+    // Boost alpha and color near cursor
+    if (bar.glow > 0.01) {
+      alpha = Math.min(1, alpha + bar.glow * 0.5);
+      if (!isPast) {
+        // Unplayed bars get accent tint on hover
+        r_col = Math.round(r_col + (rgb.r - r_col) * bar.glow * 0.7);
+        g_col = Math.round(g_col + (rgb.g - g_col) * bar.glow * 0.7);
+        b_col = Math.round(b_col + (rgb.b - b_col) * bar.glow * 0.7);
+      }
+    }
+
+    // Draw glow layer
+    if (bar.glow > 0.1 || (isPast && isPlaying)) {
+      const glowAlpha = Math.max(bar.glow * 0.4, isPast && isPlaying ? 0.15 : 0);
+      waveformCtx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${glowAlpha})`;
+      waveformCtx.beginPath();
+      waveformCtx.roundRect(x - actualBarWidth/2 - 3, barY - 3, actualBarWidth + 6, barHeight + 6, 4);
+      waveformCtx.fill();
+    }
+
+    // Draw main bar
+    waveformCtx.fillStyle = `rgba(${r_col}, ${g_col}, ${b_col}, ${alpha})`;
+    waveformCtx.beginPath();
+    waveformCtx.roundRect(x - actualBarWidth/2, barY, actualBarWidth, barHeight, 2);
+    waveformCtx.fill();
+
+    // Spawn particles on strong hover interaction
+    if (bar.glow > 0.8 && Math.random() < 0.1) {
+      spawnParticles(x, barY, 1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
+    }
+  }
+
+  // Draw playhead line
+  if (progress > 0) {
+    const playheadX = progress * w;
+
+    // Glow
+    const gradient = waveformCtx.createLinearGradient(playheadX - 10, 0, playheadX + 10, 0);
+    gradient.addColorStop(0, 'transparent');
+    gradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
+    gradient.addColorStop(1, 'transparent');
+    waveformCtx.fillStyle = gradient;
+    waveformCtx.fillRect(playheadX - 10, 8, 20, h - 16);
+
+    // Line
+    waveformCtx.fillStyle = `rgba(255, 255, 255, 0.9)`;
+    waveformCtx.fillRect(playheadX - 1, 8, 2, h - 16);
+  }
+
+  // Draw particles
+  for (const p of particles) {
+    waveformCtx.fillStyle = p.color.replace(/[\d.]+\)$/, `${p.alpha})`);
+    waveformCtx.beginPath();
+    waveformCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    waveformCtx.fill();
+  }
+
+  requestAnimationFrame(renderWaveform);
+}
+
+// Update waveform when track changes
+function updateWaveformForTrack() {
+  waveformData = generateWaveformData(currentTrack);
+  initBarStates();
+  ripples = [];
+  particles = [];
+}
+
+// ============================================
 // PLAY CONTROLS
 // ============================================
 function initPlayControls() {
@@ -3011,6 +3373,9 @@ function loadTrack(index) {
       vinyl.material.needsUpdate = true;
     });
   }
+
+  // Update waveform visualization for new track
+  updateWaveformForTrack();
 }
 
 // Track transition state
@@ -3137,45 +3502,28 @@ function prevTrack() {
 // PROGRESS
 // ============================================
 let isDraggingProgress = false;
-let pendingSeekPct = null; // Store pending seek if audio not ready
+let pendingSeekPct = null;
 
 audio.addEventListener('timeupdate', () => {
-  // Don't update while dragging or if there's a pending seek
-  if (isDraggingProgress || pendingSeekPct !== null) return;
+  // Don't update visual while actively dragging
+  if (isDraggingProgress) return;
 
   const pct = (audio.currentTime / audio.duration) * 100;
   if (!isNaN(pct)) {
     progressFill.style.width = `${pct}%`;
+    if (progressGlow) progressGlow.style.width = `${pct}%`;
     if (scrubber) scrubber.style.left = `${pct}%`;
   }
   timeCurrent.textContent = formatTime(audio.currentTime);
 });
 
 audio.addEventListener('loadedmetadata', () => {
-  console.log('loadedmetadata fired, duration:', audio.duration);
   timeTotal.textContent = formatTime(audio.duration);
-  applyPendingSeek();
 });
 
-audio.addEventListener('canplay', () => {
-  console.log('canplay fired, readyState:', audio.readyState);
-  applyPendingSeek();
+audio.addEventListener('seeked', () => {
+  pendingSeekPct = null;
 });
-
-function applyPendingSeek() {
-  console.log('applyPendingSeek called, pendingSeekPct:', pendingSeekPct, 'duration:', audio.duration);
-  if (pendingSeekPct !== null && audio.duration > 0 && !isNaN(audio.duration)) {
-    const newTime = pendingSeekPct * audio.duration;
-    console.log('Applying pending seek:', pendingSeekPct, '-> time:', newTime);
-    try {
-      audio.currentTime = newTime;
-      console.log('Seek applied, currentTime now:', audio.currentTime);
-      pendingSeekPct = null;
-    } catch (e) {
-      console.log('Pending seek failed, will retry:', e);
-    }
-  }
-}
 
 audio.addEventListener('ended', () => {
   // Check queue first, then auto-advance
@@ -3188,78 +3536,100 @@ audio.addEventListener('ended', () => {
 });
 
 function seekToPosition(clientX) {
-  const bar = document.getElementById('progress-bar');
+  const bar = progressBar || document.getElementById('progress-bar');
   if (!bar) return;
   const rect = bar.getBoundingClientRect();
+  if (rect.width === 0) return;
+
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
 
-  console.log('=== SEEK DEBUG ===');
-  console.log('Click pct:', pct);
-  console.log('audio.src:', audio.src);
-  console.log('audio.duration:', audio.duration);
-  console.log('audio.readyState:', audio.readyState);
-  console.log('audio.networkState:', audio.networkState);
-  console.log('audio.paused:', audio.paused);
-  console.log('audio.currentTime before:', audio.currentTime);
+  // Store pending seek
+  pendingSeekPct = pct;
 
-  // Check what's buffered
-  console.log('Buffered ranges:');
-  for (let i = 0; i < audio.buffered.length; i++) {
-    console.log(`  Range ${i}: ${audio.buffered.start(i).toFixed(2)}s - ${audio.buffered.end(i).toFixed(2)}s`);
+  // Try to seek if duration is available
+  if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+    const targetTime = pct * audio.duration;
+    timeCurrent.textContent = formatTime(targetTime);
+
+    const wasPlaying = !audio.paused;
+    audio.currentTime = targetTime;
+
+    if (wasPlaying && audio.paused) {
+      audio.play();
+    }
+  } else {
+    timeCurrent.textContent = formatTime(0);
+    audio.load();
   }
-
-  // Update visual immediately
-  progressFill.style.width = `${pct * 100}%`;
-  if (scrubber) scrubber.style.left = `${pct * 100}%`;
-
-  // Check if audio is ready
-  const duration = audio.duration;
-  const isReady = duration && !isNaN(duration) && duration > 0 && audio.readyState >= 1;
-
-  console.log('isReady:', isReady);
-
-  if (!isReady) {
-    // Store pending seek to apply when audio is ready
-    pendingSeekPct = pct;
-    console.log('Audio not ready, storing pending seek:', pct);
-    return;
-  }
-
-  pendingSeekPct = null;
-  const newTime = pct * duration;
-  console.log('Setting currentTime to:', newTime);
-
-  try {
-    audio.currentTime = newTime;
-    console.log('audio.currentTime after:', audio.currentTime);
-  } catch (e) {
-    console.log('Seek failed:', e);
-    pendingSeekPct = pct;
-  }
-  console.log('=== END SEEK DEBUG ===');
 }
+
+// Apply pending seek when audio becomes available
+audio.addEventListener('loadeddata', () => {
+  if (pendingSeekPct !== null && audio.duration > 0) {
+    audio.currentTime = pendingSeekPct * audio.duration;
+    pendingSeekPct = null;
+  }
+});
+
+audio.addEventListener('canplay', () => {
+  if (pendingSeekPct !== null && audio.duration > 0) {
+    audio.currentTime = pendingSeekPct * audio.duration;
+    pendingSeekPct = null;
+  }
+});
 
 // Draggable progress bar
 const progressTooltip = document.getElementById('progress-tooltip');
 
-if (progressBar) {
-  // Mouse down - start drag
-  progressBar.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    isDraggingProgress = true;
-    progressBar.classList.add('dragging');
-    seekToPosition(e.clientX);
+if (progressWrapper) {
+  // Mouse enter/leave for waveform
+  progressWrapper.addEventListener('mouseenter', (e) => {
+    const rect = progressWrapper.getBoundingClientRect();
+    waveformHoverX = e.clientX - rect.left;
+    waveformHoverY = e.clientY - rect.top;
   });
 
-  // Mouse move - update tooltip and drag
-  progressBar.addEventListener('mousemove', (e) => {
-    const rect = progressBar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  progressWrapper.addEventListener('mouseleave', () => {
+    waveformHoverX = -1;
+    waveformHoverY = -1;
+  });
+
+  // Mouse move - update tooltip and waveform hover
+  progressWrapper.addEventListener('mousemove', (e) => {
+    const rect = progressWrapper.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const pct = Math.max(0, Math.min(1, x / rect.width));
     const time = pct * audio.duration;
-    if (progressTooltip && !isNaN(time)) {
-      progressTooltip.textContent = formatTime(time);
-      progressTooltip.style.left = `${e.clientX - rect.left}px`;
+
+    // Update waveform hover position
+    waveformHoverX = x;
+    waveformHoverY = y;
+
+    // Update tooltip
+    const tooltipTime = progressTooltip?.querySelector('.tooltip-time');
+    if (tooltipTime && !isNaN(time)) {
+      tooltipTime.textContent = formatTime(time);
     }
+    if (progressTooltip) {
+      progressTooltip.style.left = `${x}px`;
+    }
+  });
+
+  // Click/drag anywhere in progress wrapper to seek
+  progressWrapper.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    isDraggingProgress = true;
+    if (progressBar) progressBar.classList.add('dragging');
+
+    // Spawn ripple effect at click position
+    const rect = progressWrapper.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (typeof spawnRipple === 'function') {
+      spawnRipple(x);
+    }
+
+    seekToPosition(e.clientX);
   });
 }
 
@@ -3278,11 +3648,11 @@ document.addEventListener('mouseup', () => {
 });
 
 // Touch support for mobile
-if (progressBar) {
-  progressBar.addEventListener('touchstart', (e) => {
+if (progressWrapper) {
+  progressWrapper.addEventListener('touchstart', (e) => {
     e.preventDefault();
     isDraggingProgress = true;
-    progressBar.classList.add('dragging');
+    if (progressBar) progressBar.classList.add('dragging');
     seekToPosition(e.touches[0].clientX);
   }, { passive: false });
 }
@@ -3623,6 +3993,7 @@ initThree();
 initAurora();
 initAsciiShader();
 initVizBars();
+initWaveform();
 initPlayControls();
 loadTrack(0);
 

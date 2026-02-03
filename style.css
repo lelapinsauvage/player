@@ -305,7 +305,8 @@ body.loaded .player-footer {
 }
 
 /* ============================================
-   PROGRESS BAR - Enhanced with hover tooltip
+   PROGRESS BAR - The Groove
+   Award-winning waveform reveal on hover
    ============================================ */
 .player-controls {
   position: relative;
@@ -318,90 +319,108 @@ body.loaded .player-footer {
 .progress-wrapper {
   position: relative;
   z-index: 100;
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
 }
 
+/* Waveform canvas - Magnetic Pulse */
+.waveform-canvas {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  pointer-events: none;
+}
+
+/* Scrub line hidden - magnetic effect handles this */
+.scrub-line {
+  display: none;
+}
+
+/* Progress bar - visual handled by waveform canvas */
 .progress-bar {
-  position: relative;
-  height: 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
   background: transparent;
   cursor: pointer;
   overflow: visible;
 }
 
+/* Hide the old track line - waveform handles visuals */
 .progress-bar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 3px;
-  background: var(--white-10);
-  border-radius: 3px;
-  transition: height 0.2s ease;
+  display: none;
 }
 
-.progress-bar:hover::before {
-  height: 5px;
-}
-
+/* Hide old progress fill - waveform shows progress via bar colors */
 .progress-fill {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 3px;
-  width: 0%;
-  background: var(--track-accent);
-  border-radius: 3px;
-  transition: width 0.1s linear, background 0.5s ease, height 0.2s ease;
-  pointer-events: none;
+  display: none;
 }
 
-.progress-bar:hover .progress-fill {
-  height: 5px;
+/* Hide old glow effect */
+.progress-glow {
+  display: none;
 }
 
-/* Progress scrubber dot */
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%) scale(0);
-  width: 12px;
-  height: 12px;
-  background: var(--white);
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
-  pointer-events: none;
+
+/* Active/dragging state */
+.progress-bar.dragging .progress-fill::after {
+  transform: translate(50%, -50%) scale(1.2);
+  box-shadow:
+    0 0 0 4px rgba(var(--track-accent-rgb), 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
-.progress-bar:hover .progress-fill::after {
-  transform: translateY(-50%) scale(1);
-}
-
-/* Time tooltip */
+/* Floating time tooltip */
 .progress-tooltip {
   position: absolute;
-  top: -32px;
+  top: -8px;
   left: 0;
-  padding: 4px 8px;
-  background: var(--white-10);
-  backdrop-filter: blur(10px);
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--white);
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--white-15);
+  border-radius: 8px;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-50%);
-  transition: opacity 0.15s ease;
+  transform: translateX(-50%) translateY(5px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  z-index: 10;
 }
 
-.progress-bar:hover .progress-tooltip {
+.progress-wrapper:hover .progress-tooltip {
   opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-time {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+
+/* Tooltip accent line pointing down */
+.progress-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 8px;
+  background: linear-gradient(to bottom, var(--track-accent), transparent);
+  border-radius: 1px;
 }
 
 .time-row {

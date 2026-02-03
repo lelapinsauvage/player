@@ -113,12 +113,20 @@
 
     <!-- Bottom: Controls -->
     <footer class="player-footer">
-      <!-- Progress bar -->
+      <!-- Progress bar - The Groove -->
       <div class="player-controls">
         <div class="progress-wrapper">
+          <!-- Waveform canvas - rises on hover -->
+          <canvas id="waveform-canvas" class="waveform-canvas"></canvas>
+          <!-- Scrub preview line -->
+          <div class="scrub-line" id="scrub-line"></div>
           <div class="progress-bar" id="progress-bar">
             <div class="progress-fill" id="progress-fill"></div>
-            <div class="progress-tooltip" id="progress-tooltip">0:00</div>
+            <div class="progress-glow" id="progress-glow"></div>
+          </div>
+          <!-- Floating time tooltip -->
+          <div class="progress-tooltip" id="progress-tooltip">
+            <span class="tooltip-time">0:00</span>
           </div>
         </div>
         <div class="time-row">
