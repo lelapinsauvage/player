@@ -918,58 +918,74 @@ function initThree() {
   animate();
 }
 
+// Store light references for dynamic color updates
+let sceneLights = {
+  ambient: null,
+  key: null,
+  fill: null,
+  rim: null,
+  frontFill: null,
+  vinylSpot: null,
+  bodyGlow: null
+};
+
 function setupLighting() {
-  // Warm ambient for organic feel
-  scene.add(new THREE.AmbientLight(0xfff5e6, 0.15));
+  // Initial colors from first track
+  const track = tracks[currentTrack];
+  const accentHex = track?.accentColor || '#c4a35a';
+  const accentColor = new THREE.Color(accentHex);
+  const fillColor = accentColor.clone().lerp(new THREE.Color(0xffffff), 0.5);
 
-  // Key light - warm, main illumination from upper right
-  const keyLight = new THREE.DirectionalLight(0xfff0e0, 1.0);
-  keyLight.position.set(100, 200, 180);
-  scene.add(keyLight);
+  // Soft ambient
+  sceneLights.ambient = new THREE.AmbientLight(accentColor, 0.06);
+  scene.add(sceneLights.ambient);
 
-  // Fill light - cool blue tint for contrast
-  const fillLight = new THREE.DirectionalLight(0xd0e0ff, 0.25);
-  fillLight.position.set(-120, 100, 80);
-  scene.add(fillLight);
+  // KEY LIGHT
+  sceneLights.key = new THREE.DirectionalLight(accentColor, 0.25);
+  sceneLights.key.position.set(-180, 280, 300);
+  scene.add(sceneLights.key);
 
-  // Rim light - back lighting for depth
-  const rimLight = new THREE.DirectionalLight(0xffeedd, 0.4);
-  rimLight.position.set(-50, 150, -100);
-  scene.add(rimLight);
+  // FILL LIGHT
+  sceneLights.fill = new THREE.DirectionalLight(fillColor, 0.15);
+  sceneLights.fill.position.set(200, 150, 250);
+  scene.add(sceneLights.fill);
 
-  // Main spotlight on vinyl
-  const vinylSpot = new THREE.SpotLight(0xfff8f0, 1.8, 500, Math.PI / 6, 0.7, 1.5);
-  vinylSpot.position.set(80, 220, 160);
-  vinylSpot.target.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
-  scene.add(vinylSpot);
-  scene.add(vinylSpot.target);
+  // RIM LIGHT
+  sceneLights.rim = new THREE.DirectionalLight(accentColor, 0.12);
+  sceneLights.rim.position.set(0, 80, -180);
+  scene.add(sceneLights.rim);
 
-  // Secondary accent spotlight
-  const accentSpot = new THREE.SpotLight(0xffe0c0, 0.8, 400, Math.PI / 7, 0.8, 1.8);
-  accentSpot.position.set(-100, 180, 140);
-  accentSpot.target.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
-  scene.add(accentSpot);
-  scene.add(accentSpot.target);
+  // FRONT FILL
+  sceneLights.frontFill = new THREE.DirectionalLight(fillColor, 0.1);
+  sceneLights.frontFill.position.set(0, 50, 350);
+  scene.add(sceneLights.frontFill);
 
-  // Top-down light
-  const topLight = new THREE.DirectionalLight(0xffffff, 0.15);
-  topLight.position.set(0, 300, 0);
-  scene.add(topLight);
+  // VINYL SPOT
+  sceneLights.vinylSpot = new THREE.SpotLight(fillColor, 0.18, 500, Math.PI / 4, 0.8, 1.8);
+  sceneLights.vinylSpot.position.set(-80, 280, 220);
+  sceneLights.vinylSpot.target.position.set(vinylOnPosition.x, vinylOnPosition.y, vinylOnPosition.z);
+  scene.add(sceneLights.vinylSpot);
+  scene.add(sceneLights.vinylSpot.target);
 
-  // Warm point light
-  const warmGlow = new THREE.PointLight(0xffcc88, 0.3, 300, 2);
-  warmGlow.position.set(50, 80, 100);
-  scene.add(warmGlow);
+  // BODY GLOW
+  sceneLights.bodyGlow = new THREE.PointLight(accentColor, 0.12, 400, 2);
+  sceneLights.bodyGlow.position.set(0, 30, 200);
+  scene.add(sceneLights.bodyGlow);
+}
 
-  // Cool point light
-  const coolGlow = new THREE.PointLight(0x88aaff, 0.15, 250, 2);
-  coolGlow.position.set(-80, 60, 80);
-  scene.add(coolGlow);
+function updateLightingColors() {
+  const track = tracks[currentTrack];
+  const accentHex = track?.accentColor || '#c4a35a';
+  const accentColor = new THREE.Color(accentHex);
+  const fillColor = accentColor.clone().lerp(new THREE.Color(0xffffff), 0.5);
 
-  // Bounce light
-  const bounceLight = new THREE.DirectionalLight(0xfff8f0, 0.1);
-  bounceLight.position.set(0, -50, 100);
-  scene.add(bounceLight);
+  if (sceneLights.ambient) sceneLights.ambient.color.copy(accentColor);
+  if (sceneLights.key) sceneLights.key.color.copy(accentColor);
+  if (sceneLights.fill) sceneLights.fill.color.copy(fillColor);
+  if (sceneLights.rim) sceneLights.rim.color.copy(accentColor);
+  if (sceneLights.frontFill) sceneLights.frontFill.color.copy(fillColor);
+  if (sceneLights.vinylSpot) sceneLights.vinylSpot.color.copy(fillColor);
+  if (sceneLights.bodyGlow) sceneLights.bodyGlow.color.copy(accentColor);
 }
 
 function loadTurntable() {
@@ -1559,6 +1575,10 @@ function updateVisualizer() {
 let auroraGl, auroraProgram, auroraTime = 0;
 let auroraBassSmooth = 0, auroraHighSmooth = 0;
 let auroraPlaying = 1; // Start hidden, fade in on pause
+let auroraTargetPlaying = 1;
+let auroraTransitionStart = 0;
+let auroraTransitionFrom = 1;
+const AURORA_TRANSITION_MS = 300;
 let auroraMouseX = 0.5, auroraMouseY = 0.5;
 let auroraMouseSmoothX = 0.5, auroraMouseSmoothY = 0.5;
 
@@ -1759,9 +1779,21 @@ function updateAurora() {
   // Time always advances - clouds always move
   auroraTime += 0.016;
 
-  // Smooth fade transition for playing state (~300ms fade)
-  const targetPlaying = isPlaying ? 1 : 0;
-  auroraPlaying += (targetPlaying - auroraPlaying) * 0.15;
+  // Smooth 300ms eased transition for playing state
+  const newTarget = isPlaying ? 1 : 0;
+  if (newTarget !== auroraTargetPlaying) {
+    auroraTargetPlaying = newTarget;
+    auroraTransitionFrom = auroraPlaying;
+    auroraTransitionStart = performance.now();
+  }
+
+  const elapsed = performance.now() - auroraTransitionStart;
+  const progress = Math.min(1, elapsed / AURORA_TRANSITION_MS);
+  // Smooth ease-in-out curve
+  const eased = progress < 0.5
+    ? 2 * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+  auroraPlaying = auroraTransitionFrom + (auroraTargetPlaying - auroraTransitionFrom) * eased;
 
   // Smooth audio values
   if (analyser && isPlaying) {
@@ -2058,6 +2090,7 @@ let asciiGl, asciiProgram, asciiTexture;
 let asciiActive = false;
 let asciiColor = [1.0, 0.09, 0.27]; // Default red
 let asciiBass = 0, asciiHigh = 0; // Audio reactivity
+let asciiGlitchAmount = 0; // 0-1 glitch intensity for transitions
 
 const asciiVertexShader = `
   attribute vec2 a_position;
@@ -2080,6 +2113,11 @@ const asciiFragmentShader = `
   uniform float u_bass;
   uniform float u_high;
   uniform float u_playing;
+  uniform float u_glitch;
+
+  // Noise function for glitch
+  float hash(float n) { return fract(sin(n) * 43758.5453); }
+  float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
   // Character bitmaps encoded as floats (5x7 grid = 35 bits)
   // Characters: " .:-=+*#%@"
@@ -2169,7 +2207,38 @@ const asciiFragmentShader = `
 
     float bassIntensity = u_bass * u_bass * 4.0;
 
-    vec2 cell = floor(gl_FragCoord.xy / cellSize);
+    vec2 fragCoord = gl_FragCoord.xy;
+
+    // === GLITCH EFFECTS ===
+    if (u_glitch > 0.0) {
+      float glitchTime = u_time * 50.0;
+
+      // Row displacement - shift entire rows horizontally
+      float rowIndex = floor(fragCoord.y / cellSize.y);
+      float rowNoise = hash(rowIndex + floor(glitchTime));
+      if (rowNoise > 0.7) {
+        float shift = (hash(rowIndex * 3.0 + glitchTime) - 0.5) * 200.0 * u_glitch;
+        fragCoord.x += shift;
+      }
+
+      // Block corruption - displace random blocks
+      vec2 blockId = floor(fragCoord / (cellSize * 8.0));
+      float blockNoise = hash2(blockId + floor(glitchTime * 0.5));
+      if (blockNoise > 0.85) {
+        fragCoord.x += (hash(blockNoise * 100.0) - 0.5) * 100.0 * u_glitch;
+        fragCoord.y += (hash(blockNoise * 200.0) - 0.5) * 50.0 * u_glitch;
+      }
+
+      // Vertical tear/jump
+      if (hash(floor(glitchTime * 2.0)) > 0.8) {
+        float tearY = hash(floor(glitchTime)) * u_resolution.y;
+        if (abs(fragCoord.y - tearY) < 30.0) {
+          fragCoord.x += 50.0 * u_glitch * sign(hash(tearY) - 0.5);
+        }
+      }
+    }
+
+    vec2 cell = floor(fragCoord / cellSize);
     vec2 cellUV = cell * cellSize / u_resolution;
 
     // Cover-style UV calculation with extra zoom to crop black borders
@@ -2200,6 +2269,14 @@ const asciiFragmentShader = `
     float brightness = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
 
     int charIndex = int(brightness * 9.99);
+
+    // Glitch: scramble characters randomly
+    if (u_glitch > 0.0) {
+      float scrambleNoise = hash2(cell + floor(u_time * 30.0));
+      if (scrambleNoise > 0.7) {
+        charIndex = int(hash(scrambleNoise * 999.0) * 10.0);
+      }
+    }
 
     vec2 posInCell = mod(gl_FragCoord.xy, cellSize);
     vec2 charPos = posInCell / cellSize * vec2(5.0, 7.0);
@@ -2343,6 +2420,7 @@ function updateAsciiShader() {
   gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_bass'), asciiBass);
   gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_high'), asciiHigh);
   gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_playing'), isPlaying ? 1.0 : 0.0);
+  gl.uniform1f(gl.getUniformLocation(asciiProgram, 'u_glitch'), asciiGlitchAmount);
 
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -2805,6 +2883,7 @@ function hexToRgb(hex) {
 function loadTrack(index) {
   const track = tracks[index];
   audio.src = track.src;
+  audio.load(); // Ensure audio starts loading immediately
 
   // Set accent color CSS custom properties
   const accent = track.accentColor || track.labelColor;
@@ -2905,6 +2984,27 @@ function tapeStop(duration = 300) {
   });
 }
 
+// Glitch effect for transitions - animates ASCII shader glitch
+function triggerGlitch(duration = 300) {
+  const startTime = performance.now();
+
+  function animateGlitch() {
+    const elapsed = performance.now() - startTime;
+    const progress = elapsed / duration;
+
+    if (progress < 1) {
+      // Spike up quickly, then decay with some randomness
+      const spike = progress < 0.2 ? progress / 0.2 : 1 - ((progress - 0.2) / 0.8);
+      asciiGlitchAmount = spike * (0.8 + Math.random() * 0.4);
+      requestAnimationFrame(animateGlitch);
+    } else {
+      asciiGlitchAmount = 0;
+    }
+  }
+
+  animateGlitch();
+}
+
 async function transitionToTrack(newIndex) {
   if (isTransitioning || newIndex === currentTrack) return;
   isTransitioning = true;
@@ -2915,6 +3015,7 @@ async function transitionToTrack(newIndex) {
   // Tape stop effect if currently playing
   if (wasPlaying && !audio.paused) {
     tapeStop(250);
+    triggerGlitch(300); // Visual glitch synced with audio
   }
 
   // Phase 1: EXIT - text slides out + vinyl speeds up (in parallel)
@@ -2934,8 +3035,14 @@ async function transitionToTrack(newIndex) {
   // Swap vinyl texture during fast spin
   if (vinyl) swapVinylTexture(newIndex);
 
+  // Quick glitch burst on swap
+  triggerGlitch(150);
+
   currentTrack = newIndex;
   loadTrack(currentTrack);
+
+  // Update lighting colors to match new track
+  updateLightingColors();
 
   // Update menu if open
   if (menuOpen) {
@@ -2972,16 +3079,46 @@ function prevTrack() {
 // ============================================
 // PROGRESS
 // ============================================
+let isDraggingProgress = false;
+let pendingSeekPct = null; // Store pending seek if audio not ready
+
 audio.addEventListener('timeupdate', () => {
+  // Don't update while dragging or if there's a pending seek
+  if (isDraggingProgress || pendingSeekPct !== null) return;
+
   const pct = (audio.currentTime / audio.duration) * 100;
-  progressFill.style.width = `${pct}%`;
-  if (scrubber) scrubber.style.left = `${pct}%`;
+  if (!isNaN(pct)) {
+    progressFill.style.width = `${pct}%`;
+    if (scrubber) scrubber.style.left = `${pct}%`;
+  }
   timeCurrent.textContent = formatTime(audio.currentTime);
 });
 
 audio.addEventListener('loadedmetadata', () => {
+  console.log('loadedmetadata fired, duration:', audio.duration);
   timeTotal.textContent = formatTime(audio.duration);
+  applyPendingSeek();
 });
+
+audio.addEventListener('canplay', () => {
+  console.log('canplay fired, readyState:', audio.readyState);
+  applyPendingSeek();
+});
+
+function applyPendingSeek() {
+  console.log('applyPendingSeek called, pendingSeekPct:', pendingSeekPct, 'duration:', audio.duration);
+  if (pendingSeekPct !== null && audio.duration > 0 && !isNaN(audio.duration)) {
+    const newTime = pendingSeekPct * audio.duration;
+    console.log('Applying pending seek:', pendingSeekPct, '-> time:', newTime);
+    try {
+      audio.currentTime = newTime;
+      console.log('Seek applied, currentTime now:', audio.currentTime);
+      pendingSeekPct = null;
+    } catch (e) {
+      console.log('Pending seek failed, will retry:', e);
+    }
+  }
+}
 
 audio.addEventListener('ended', () => {
   // Check queue first, then auto-advance
@@ -2999,61 +3136,110 @@ function seekToPosition(clientX) {
   const rect = bar.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
 
-  if (!audio.duration || isNaN(audio.duration) || audio.duration <= 0) {
-    console.log('Audio duration not ready');
+  console.log('=== SEEK DEBUG ===');
+  console.log('Click pct:', pct);
+  console.log('audio.src:', audio.src);
+  console.log('audio.duration:', audio.duration);
+  console.log('audio.readyState:', audio.readyState);
+  console.log('audio.networkState:', audio.networkState);
+  console.log('audio.paused:', audio.paused);
+  console.log('audio.currentTime before:', audio.currentTime);
+
+  // Check what's buffered
+  console.log('Buffered ranges:');
+  for (let i = 0; i < audio.buffered.length; i++) {
+    console.log(`  Range ${i}: ${audio.buffered.start(i).toFixed(2)}s - ${audio.buffered.end(i).toFixed(2)}s`);
+  }
+
+  // Update visual immediately
+  progressFill.style.width = `${pct * 100}%`;
+  if (scrubber) scrubber.style.left = `${pct * 100}%`;
+
+  // Check if audio is ready
+  const duration = audio.duration;
+  const isReady = duration && !isNaN(duration) && duration > 0 && audio.readyState >= 1;
+
+  console.log('isReady:', isReady);
+
+  if (!isReady) {
+    // Store pending seek to apply when audio is ready
+    pendingSeekPct = pct;
+    console.log('Audio not ready, storing pending seek:', pct);
     return;
   }
 
-  const newTime = pct * audio.duration;
+  pendingSeekPct = null;
+  const newTime = pct * duration;
+  console.log('Setting currentTime to:', newTime);
 
-  // Debug info
-  console.log('=== SEEK DEBUG ===');
-  console.log('Target time:', newTime);
-  console.log('Duration:', audio.duration);
-  console.log('ReadyState:', audio.readyState);
-  console.log('NetworkState:', audio.networkState);
-  console.log('Paused:', audio.paused);
-  console.log('Src:', audio.src);
-
-  // Check buffered ranges
-  console.log('Buffered ranges:');
-  for (let i = 0; i < audio.buffered.length; i++) {
-    console.log(`  Range ${i}: ${audio.buffered.start(i)} - ${audio.buffered.end(i)}`);
+  try {
+    audio.currentTime = newTime;
+    console.log('audio.currentTime after:', audio.currentTime);
+  } catch (e) {
+    console.log('Seek failed:', e);
+    pendingSeekPct = pct;
   }
-
-  // Check if target is in buffered range
-  let inBuffer = false;
-  for (let i = 0; i < audio.buffered.length; i++) {
-    if (newTime >= audio.buffered.start(i) && newTime <= audio.buffered.end(i)) {
-      inBuffer = true;
-      break;
-    }
-  }
-  console.log('Target in buffer:', inBuffer);
-
-  // Try the seek
-  audio.currentTime = newTime;
-  console.log('After set, currentTime:', audio.currentTime);
-  console.log('=== END DEBUG ===');
+  console.log('=== END SEEK DEBUG ===');
 }
 
-// Single click handler on progress bar
+// Draggable progress bar
+const progressTooltip = document.getElementById('progress-tooltip');
+
 if (progressBar) {
-  progressBar.addEventListener('click', (e) => {
-    e.stopPropagation();
+  // Mouse down - start drag
+  progressBar.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    isDraggingProgress = true;
+    progressBar.classList.add('dragging');
     seekToPosition(e.clientX);
+  });
+
+  // Mouse move - update tooltip and drag
+  progressBar.addEventListener('mousemove', (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const time = pct * audio.duration;
+    if (progressTooltip && !isNaN(time)) {
+      progressTooltip.textContent = formatTime(time);
+      progressTooltip.style.left = `${e.clientX - rect.left}px`;
+    }
   });
 }
 
-// Progress bar tooltip
-const progressTooltip = document.getElementById('progress-tooltip');
-progressBar.addEventListener('mousemove', (e) => {
-  const rect = progressBar.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  const time = pct * audio.duration;
-  if (progressTooltip && !isNaN(time)) {
-    progressTooltip.textContent = formatTime(time);
-    progressTooltip.style.left = `${e.clientX - rect.left}px`;
+// Global mouse move/up for drag
+document.addEventListener('mousemove', (e) => {
+  if (isDraggingProgress) {
+    seekToPosition(e.clientX);
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDraggingProgress) {
+    isDraggingProgress = false;
+    if (progressBar) progressBar.classList.remove('dragging');
+  }
+});
+
+// Touch support for mobile
+if (progressBar) {
+  progressBar.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    isDraggingProgress = true;
+    progressBar.classList.add('dragging');
+    seekToPosition(e.touches[0].clientX);
+  }, { passive: false });
+}
+
+document.addEventListener('touchmove', (e) => {
+  if (isDraggingProgress && e.touches[0]) {
+    seekToPosition(e.touches[0].clientX);
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  if (isDraggingProgress) {
+    isDraggingProgress = false;
+    if (progressBar) progressBar.classList.remove('dragging');
   }
 });
 
