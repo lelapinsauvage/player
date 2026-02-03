@@ -2761,14 +2761,19 @@ function initWaveform() {
   }
 }
 
+// Touch device detection
+const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
 function resizeWaveform() {
   if (!waveformCanvas) return;
   const wrapper = waveformCanvas.parentElement;
   const dpr = Math.min(window.devicePixelRatio, 2);
+  // Get height from CSS (responsive)
+  const cssHeight = parseInt(getComputedStyle(waveformCanvas).height) || 80;
   waveformCanvas.width = wrapper.clientWidth * dpr;
-  waveformCanvas.height = 80 * dpr;
+  waveformCanvas.height = cssHeight * dpr;
   waveformCanvas.style.width = wrapper.clientWidth + 'px';
-  waveformCanvas.style.height = '80px';
+  waveformCanvas.style.height = cssHeight + 'px';
   waveformCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
@@ -2938,7 +2943,9 @@ function renderWaveform() {
     if (isPast) {
       alpha = 0.95;
     } else {
-      alpha = 0.25 + bar.glow * 0.7;
+      // Touch devices: bars more visible by default (no hover)
+      const baseAlpha = isTouchDevice ? 0.4 : 0.25;
+      alpha = baseAlpha + bar.glow * 0.55;
     }
 
     // Draw solid bar
@@ -3499,6 +3506,18 @@ function seekToPosition(clientX) {
   if (rect.width === 0) return;
 
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const localX = clientX - rect.left;
+
+  // Update waveform hover for magnetic effect on touch
+  waveformHoverX = localX;
+
+  // Update tooltip position
+  const tooltip = document.getElementById('progress-tooltip');
+  if (tooltip && audio.duration) {
+    tooltip.style.left = localX + 'px';
+    const previewTime = pct * audio.duration;
+    tooltip.querySelector('.tooltip-time').textContent = formatTime(previewTime);
+  }
 
   // Store pending seek
   pendingSeekPct = pct;
@@ -3624,6 +3643,8 @@ document.addEventListener('touchend', () => {
   if (isDraggingProgress) {
     isDraggingProgress = false;
     if (progressBar) progressBar.classList.remove('dragging');
+    // Reset waveform hover after touch ends
+    waveformHoverX = -1;
   }
 });
 
