@@ -1456,17 +1456,24 @@ body.playing .menu-player-btn .menu-icon-pause {
   .now-playing-text {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
   }
 
   .now-playing-title {
     font-size: 13px;
-    max-width: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .now-playing-artist {
     display: block;
     font-size: 11px;
-    max-width: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     opacity: 0.5;
   }
 
