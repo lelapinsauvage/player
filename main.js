@@ -1652,28 +1652,28 @@ function updateSoundReactive() {
       return;
     }
 
-    analyser.getByteFrequencyData(dataArray);
-    bassAnalyser.getByteFrequencyData(bassDataArray);
+  analyser.getByteFrequencyData(dataArray);
+  bassAnalyser.getByteFrequencyData(bassDataArray);
 
-    // Calculate frequency bands
-    let bassSum = 0;
-    for (let i = 0; i < 8; i++) {
-      bassSum += bassDataArray[i];
-    }
-    soundState.bass = bassSum / 8 / 255;
+  // Calculate frequency bands
+  let bassSum = 0;
+  for (let i = 0; i < 8; i++) {
+    bassSum += bassDataArray[i];
+  }
+  soundState.bass = bassSum / 8 / 255;
 
-    let highSum = 0;
-    for (let i = 20; i < 60; i++) {
-      highSum += dataArray[i];
-    }
-    soundState.high = highSum / 40 / 255;
+  let highSum = 0;
+  for (let i = 20; i < 60; i++) {
+    highSum += dataArray[i];
+  }
+  soundState.high = highSum / 40 / 255;
 
-    // Smooth values
-    soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.12;
-    soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
+  // Smooth values
+  soundState.bassSmooth += (soundState.bass - soundState.bassSmooth) * 0.12;
+  soundState.highSmooth += (soundState.high - soundState.highSmooth) * 0.15;
 
-    // Update visualizer bars
-    updateVisualizer();
+  // Update visualizer bars
+  updateVisualizer();
 
     requestAnimationFrame(tick);
   }
@@ -1900,7 +1900,7 @@ function updateAurora() {
   auroraMouseSmoothY += (auroraMouseY - auroraMouseSmoothY) * 0.02;
 
   // Time always advances - clouds always move
-  auroraTime += 0.016;
+    auroraTime += 0.016;
 
   // Smooth 300ms eased transition for playing state
   const newTarget = isPlaying ? 1 : 0;
@@ -2094,9 +2094,9 @@ function createSongSoul() {
 
         vPosition = newPosition;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-      }
-    `,
-    fragmentShader: `
+        }
+      `,
+      fragmentShader: `
       uniform vec3 u_colorA;
       uniform vec3 u_colorB;
       uniform float u_fresnelPower;
@@ -2107,7 +2107,7 @@ function createSongSoul() {
       varying vec3 vPosition;
       varying float vDisplacement;
 
-      void main() {
+        void main() {
         // Fresnel effect for edge glow
         vec3 viewDirection = normalize(cameraPosition - vPosition);
         float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), u_fresnelPower);
@@ -2126,9 +2126,9 @@ function createSongSoul() {
         float alpha = u_opacity * (0.6 + fresnel * 0.4);
 
         gl_FragColor = vec4(color, alpha);
-      }
-    `,
-    transparent: true,
+        }
+      `,
+      transparent: true,
     side: THREE.DoubleSide,
     blending: THREE.AdditiveBlending,
     depthWrite: false
@@ -2174,7 +2174,7 @@ function updateSongSoul() {
 
     songSoulMaterial.uniforms.u_bass.value += (bass - currentBass) * 0.15;
     songSoulMaterial.uniforms.u_high.value += (high - currentHigh) * 0.2;
-  } else {
+      } else {
     // Decay when paused
     songSoulMaterial.uniforms.u_bass.value *= 0.95;
     songSoulMaterial.uniforms.u_high.value *= 0.95;
@@ -2325,7 +2325,7 @@ const asciiFragmentShader = `
     return 0.0;
   }
 
-  void main() {
+        void main() {
     vec2 cellSize = vec2(u_cellSize * 0.6, u_cellSize);
 
     float bassIntensity = u_bass * u_bass * 4.0;
@@ -3001,7 +3001,7 @@ function renderWaveform() {
     let alpha;
     if (isPast) {
       alpha = 0.95;
-    } else {
+  } else {
       // Touch devices: bars more visible by default (no hover)
       const baseAlpha = isTouchDevice ? 0.4 : 0.25;
       alpha = baseAlpha + bar.glow * 0.55;
@@ -3542,9 +3542,9 @@ audio.addEventListener('timeupdate', () => {
 
   const pct = (audio.currentTime / audio.duration) * 100;
   if (!isNaN(pct)) {
-    progressFill.style.width = `${pct}%`;
+  progressFill.style.width = `${pct}%`;
     if (progressGlow) progressGlow.style.width = `${pct}%`;
-    if (scrubber) scrubber.style.left = `${pct}%`;
+  if (scrubber) scrubber.style.left = `${pct}%`;
   }
   timeCurrent.textContent = formatTime(audio.currentTime);
 });
@@ -3568,9 +3568,9 @@ audio.addEventListener('ended', () => {
 });
 
 function seekToPosition(clientX) {
-  const bar = progressBar || document.getElementById('progress-bar');
-  if (!bar) return;
-  const rect = bar.getBoundingClientRect();
+  const wrapper = progressWrapper || document.querySelector('.progress-wrapper');
+  if (!wrapper) return;
+  const rect = wrapper.getBoundingClientRect();
   if (rect.width === 0) return;
 
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
@@ -3596,15 +3596,25 @@ function seekToPosition(clientX) {
     timeCurrent.textContent = formatTime(targetTime);
 
     const wasPlaying = !audio.paused;
-    audio.currentTime = targetTime;
-
-    if (wasPlaying && audio.paused) {
-      audio.play();
+    
+    // Pause before seeking to ensure it works
+    if (wasPlaying) {
+      audio.pause();
     }
-  } else {
-    timeCurrent.textContent = formatTime(0);
-    audio.load();
+    
+    // Set the time
+    try {
+      audio.currentTime = targetTime;
+      
+      // Resume playback if it was playing
+      if (wasPlaying) {
+        audio.play().catch(() => {});
+      }
+    } catch (err) {
+      // Seek failed, ignore
+    }
   }
+  // If duration not available, pendingSeekPct will handle it when audio loads
 }
 
 // Apply pending seek when audio becomes available
@@ -3644,7 +3654,7 @@ if (progressWrapper) {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const pct = Math.max(0, Math.min(1, x / rect.width));
-    const time = pct * audio.duration;
+  const time = pct * audio.duration;
 
     // Update waveform hover position
     waveformHoverX = x;
@@ -3663,6 +3673,7 @@ if (progressWrapper) {
   // Click/drag anywhere in progress wrapper to seek
   progressWrapper.addEventListener('mousedown', (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up
     isDraggingProgress = true;
     if (progressBar) progressBar.classList.add('dragging');
 
@@ -3887,7 +3898,7 @@ function populateMenu() {
         closeMenu();
       } else {
         // Play the selected track
-        playTrackNow(index);
+      playTrackNow(index);
       }
     });
 

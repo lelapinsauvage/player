@@ -1,0 +1,24 @@
+[[headers]]
+  for = "/*.mp3"
+  [headers.values]
+    Accept-Ranges = "bytes"
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/*.mp4"
+  [headers.values]
+    Accept-Ranges = "bytes"
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/*.mov"
+  [headers.values]
+    Accept-Ranges = "bytes"
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
