@@ -2829,9 +2829,12 @@ function resizeWaveform() {
   const dpr = Math.min(window.devicePixelRatio, 2);
   // Get height from CSS (responsive)
   const cssHeight = parseInt(getComputedStyle(waveformCanvas).height) || 80;
-  waveformCanvas.width = wrapper.clientWidth * dpr;
+  // On mobile, use full viewport width
+  const isMobile = window.innerWidth <= 640;
+  const targetWidth = isMobile ? window.innerWidth : wrapper.clientWidth;
+  waveformCanvas.width = targetWidth * dpr;
   waveformCanvas.height = cssHeight * dpr;
-  waveformCanvas.style.width = wrapper.clientWidth + 'px';
+  waveformCanvas.style.width = targetWidth + 'px';
   waveformCanvas.style.height = cssHeight + 'px';
   waveformCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
@@ -2869,11 +2872,15 @@ function renderWaveform() {
     return;
   }
 
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = waveformCanvas.width / dpr;
   const h = waveformCanvas.height / dpr;
   const samples = waveformData.length;
-  const barWidth = w / samples;
+  // Add padding on mobile to align with controls (20px each side)
+  const isMobile = window.innerWidth <= 640;
+  const padding = isMobile ? 20 : 0;
+  const drawWidth = w - (padding * 2);
+  const barWidth = drawWidth / samples;
   const gap = 3;
   const maxHeight = h - 16;
   const baseY = h - 8;
@@ -2900,7 +2907,7 @@ function renderWaveform() {
   }
 
   const isHovering = waveformHoverX >= 0;
-  const cursorT = isHovering ? waveformHoverX / w : -1;
+  const cursorT = isHovering ? (waveformHoverX - padding) / drawWidth : -1;
 
   // Physics constants - editorial feel: subtle, precise
   const MAGNETIC_STRENGTH = 6;
@@ -2944,7 +2951,7 @@ function renderWaveform() {
   for (let i = 0; i < samples; i++) {
     const bar = barStates[i];
     const t = i / samples;
-    const x = i * barWidth + barWidth / 2;
+    const x = padding + i * barWidth + barWidth / 2;
 
     // Cursor proximity - subtle brightness shift, minimal movement
     let magneticY = 0;

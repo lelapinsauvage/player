@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-html {
+html, body {
   overflow-x: hidden;
 }
 
@@ -1324,6 +1324,7 @@ body.playing .menu-player-btn .menu-icon-pause {
   .container {
     padding: 20px;
     padding-bottom: 24px;
+    overflow: visible;
   }
 
   .site-header {
@@ -1372,6 +1373,7 @@ body.playing .menu-player-btn .menu-icon-pause {
   /* Controls - Centered Stack */
   .player-footer {
     gap: 16px;
+    overflow: visible;
   }
 
   .player-controls {
@@ -1381,6 +1383,15 @@ body.playing .menu-player-btn .menu-icon-pause {
 
   .progress-wrapper {
     height: 60px;
+    position: relative;
+    left: -20px;
+    width: calc(100% + 40px);
+  }
+
+  .time-row {
+    padding: 0 20px;
+    margin-left: -20px;
+    width: calc(100% + 40px);
   }
 
   .waveform-canvas {
@@ -1399,7 +1410,7 @@ body.playing .menu-player-btn .menu-icon-pause {
   .control-row {
     position: fixed;
     /* Position above Safari's toolbar */
-    bottom: max(env(safe-area-inset-bottom, 0px), 10vh);
+    bottom: max(env(safe-area-inset-bottom, 0px), 5vh);
     left: 0;
     right: 0;
     flex-direction: row;
@@ -1413,6 +1424,7 @@ body.playing .menu-player-btn .menu-icon-pause {
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     z-index: 100;
   }
+
 
   /* iOS Safari standalone (Add to Home Screen) - can sit at bottom */
   @media (display-mode: standalone) {
@@ -1477,12 +1489,12 @@ body.playing .menu-player-btn .menu-icon-pause {
 
   /* Adjust footer padding to account for fixed control bar above Safari toolbar */
   .player-footer {
-    padding-bottom: calc(10vh + 70px);
+    padding-bottom: calc(5vh + 70px);
   }
 
   /* Menu - Above fixed footer */
   .song-menu {
-    bottom: calc(10vh + 70px);
+    bottom: calc(5vh + 70px);
     left: 20px;
     right: 20px;
     width: auto;
@@ -1494,7 +1506,7 @@ body.playing .menu-player-btn .menu-icon-pause {
     width: auto;
     left: 12px;
     right: 12px;
-    bottom: calc(10vh + 70px);
+    bottom: calc(5vh + 70px);
     max-height: 45vh;
     border-radius: 16px;
   }
@@ -1620,11 +1632,11 @@ body.playing .menu-player-btn .menu-icon-pause {
   }
 
   .player-footer {
-    padding-bottom: calc(10vh + 70px);
+    padding-bottom: calc(5vh + 70px);
   }
 
   .song-menu {
-    bottom: calc(10vh + 60px);
+    bottom: calc(5vh + 60px);
     left: 16px;
     right: 16px;
   }
@@ -1632,7 +1644,7 @@ body.playing .menu-player-btn .menu-icon-pause {
   .song-menu.open {
     left: 8px;
     right: 8px;
-    bottom: calc(10vh + 60px);
+    bottom: calc(5vh + 60px);
     max-height: 50vh;
   }
 }
