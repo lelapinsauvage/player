@@ -24,6 +24,10 @@ build/
 
 # Large media files
 promo/
+promo-video/
+mp3-backup/
+3D/
+ascii/
 
 # Local Netlify folder
 .netlify
